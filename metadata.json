@@ -1,0 +1,6 @@
+{
+  "name": "Sistem Iuran KKMTS & Keuangan Transparan",
+  "description": "Aplikasi pengelolaan iuran anggota Kelompok Kerja Madrasah Tsanawiyah (KKMTS), verifikasi bukti transfer, laporan keuangan transparan, dan notifikasi WhatsApp otomatis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
