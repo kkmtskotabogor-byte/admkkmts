@@ -39,6 +39,7 @@ export interface Madrasah {
   npsn: string;
   name: string;
   status: 'Negeri' | 'Swasta';
+  studentCount: number; // Jumlah Siswa (dasar perhitungan iuran Rp 3.000 / siswa)
   headmasterName: string;
   treasurerName: string;
   phone: string; // WhatsApp active
@@ -130,7 +131,9 @@ export interface OrganizationConfig {
   postalCode: string;
   contactEmail: string;
   contactPhone: string;
-  defaultMonthlyDues: number; // Rp 150.000 / bulan
+  duesPerStudent: number; // Tarif iuran per siswa: Rp 3.000 / siswa / bulan
+  defaultMonthlyDues: number; // Fallback / flat rate default: e.g. Rp 150.000 / bulan
+  duesCalculationType?: 'per_student' | 'fixed_flat';
   chairmanName: string; // Nama Ketua KKMTS
   chairmanNip?: string;
   treasurerName: string; // Nama Bendahara KKMTS

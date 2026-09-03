@@ -14,7 +14,9 @@ import {
   Info,
   Tag,
   HelpCircle,
-  AlertCircle
+  AlertCircle,
+  Users,
+  Calculator
 } from 'lucide-react';
 import { Madrasah, PaymentRecord, OrganizationConfig, AuthSession, FeeItem } from '../types';
 import { 
@@ -22,7 +24,9 @@ import {
   ACADEMIC_MONTHS, 
   formatAcademicYear, 
   formatRupiah, 
-  isPaymentInAcademicYear 
+  isPaymentInAcademicYear,
+  getMadrasahMonthlyDues,
+  getMadrasahDuesFormula
 } from '../utils/formatters';
 import { getMadrasahAccessCode } from '../utils/authUtils';
 
@@ -83,7 +87,8 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
   const paidMonthsCount = verifiedMonthlyPayments.length;
   const unpaidMonthsCount = Math.max(0, 12 - paidMonthsCount);
   const totalPaidMonthlyAmount = verifiedMonthlyPayments.reduce((s, p) => s + p.amount, 0);
-  const totalMonthlyArrears = unpaidMonthsCount * org.defaultMonthlyDues;
+  const monthlyDuesRate = selectedMadrasah ? getMadrasahMonthlyDues(selectedMadrasah, org) : (org.duesPerStudent || 3000);
+  const totalMonthlyArrears = unpaidMonthsCount * monthlyDuesRate;
 
   // Other special fee items (exclude wajib_bulanan)
   const otherFeeItems = feeItems.filter(f => f.category !== 'wajib_bulanan' && f.isActive);
@@ -215,6 +220,19 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
               </p>
 
               <div className="mt-4 pt-3 border-t border-slate-100 space-y-2 text-xs">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Jumlah Siswa:</span>
+                  <span className="font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                    {selectedMadrasah.studentCount || 0} Siswa
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Tarif Iuran Bulanan:</span>
+                  <span className="font-black text-emerald-700">
+                    {formatRupiah(monthlyDuesRate)}/bln
+                  </span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Kepala Madrasah:</span>
                   <strong className="text-slate-800">{selectedMadrasah.headmasterName}</strong>
@@ -279,8 +297,8 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
                   {grandTotalArrears === 0 ? 'Semua kewajiban telah lunas' : `${unpaidMonthsCount} bln rutin + pos wajib belum lunas`}
                 </p>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Tarif Bulanan: {formatRupiah(org.defaultMonthlyDues)} / bulan
+              <p className="text-[11px] text-slate-500 font-medium">
+                Tarif: {formatRupiah(monthlyDuesRate)} / bulan ({selectedMadrasah.studentCount || 0} siswa × Rp {(org.duesPerStudent || 3000).toLocaleString('id-ID')})
               </p>
             </div>
 
@@ -385,7 +403,7 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
                       <span className="inline-block text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
                         Kewajiban Belum Dibayar
                       </span>
-                      <p className="text-[10px] text-slate-400">Tagihan: {formatRupiah(org.defaultMonthlyDues)}</p>
+                      <p className="text-[10px] text-slate-500">Tagihan: {formatRupiah(monthlyDuesRate)}</p>
                     </div>
                   )}
                 </div>

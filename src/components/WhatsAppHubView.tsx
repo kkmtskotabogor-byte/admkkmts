@@ -28,7 +28,8 @@ import {
   createWALink,
   sanitizePhoneForWA,
   isPaymentInAcademicYear,
-  isExpenseInAcademicYear
+  isExpenseInAcademicYear,
+  getMadrasahMonthlyDues
 } from '../utils/formatters';
 
 interface WhatsAppHubViewProps {
@@ -81,7 +82,7 @@ export const WhatsAppHubView: React.FC<WhatsAppHubViewProps> = ({
     return {
       madrasah: m,
       unpaids,
-      unpaidAmount: unpaids.length * org.defaultMonthlyDues,
+      unpaidAmount: unpaids.length * getMadrasahMonthlyDues(m, org),
     };
   }).filter(item => item.unpaids.length > 0);
 

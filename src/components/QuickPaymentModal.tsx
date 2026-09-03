@@ -10,10 +10,11 @@ import {
   QrCode, 
   Copy,
   Info,
-  DollarSign
+  DollarSign,
+  Users
 } from 'lucide-react';
 import { Madrasah, PaymentRecord, OrganizationConfig, DuesCategory, PaymentMethod, FeeItem } from '../types';
-import { MONTH_NAMES_ID, formatRupiah, generateReceiptNumber } from '../utils/formatters';
+import { MONTH_NAMES_ID, formatRupiah, generateReceiptNumber, getMadrasahMonthlyDues } from '../utils/formatters';
 
 interface QuickPaymentModalProps {
   isOpen?: boolean;
@@ -72,21 +73,34 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
     }
   }, [defaultMadrasahId, defaultMonth, defaultYear, defaultFeeItemId, feeItems]);
 
+  const selectedMadrasah = madrasahs.find(m => m.id === madrasahId);
+  const activeFeeItem = feeItems.find(f => f.id === selectedFeeItemId);
+  const monthlyUnitDues = selectedMadrasah ? getMadrasahMonthlyDues(selectedMadrasah, org) : (org.defaultMonthlyDues || 150000);
+
+  const handleSelectMadrasah = (mId: string) => {
+    setMadrasahId(mId);
+    const m = madrasahs.find(item => item.id === mId);
+    if (m && (!activeFeeItem || activeFeeItem.category === 'wajib_bulanan' || duesCategory === 'wajib_bulanan')) {
+      setAmount(getMadrasahMonthlyDues(m, org));
+    }
+  };
+
   const handleSelectFeeItem = (id: string) => {
     setSelectedFeeItemId(id);
     const found = feeItems.find(f => f.id === id);
     if (found) {
       setDuesCategory(found.category as DuesCategory);
-      if (found.amount > 0) {
+      if (found.category === 'wajib_bulanan') {
+        if (selectedMadrasah) {
+          setAmount(getMadrasahMonthlyDues(selectedMadrasah, org));
+        } else {
+          setAmount(found.amount || 150000);
+        }
+      } else if (found.amount > 0) {
         setAmount(found.amount);
       }
     }
   };
-
-  if (!isOpen) return null;
-
-  const selectedMadrasah = madrasahs.find(m => m.id === madrasahId);
-  const activeFeeItem = feeItems.find(f => f.id === selectedFeeItemId);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -243,18 +257,26 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
           
           {/* Madrasah Choice */}
           <div>
-            <label className="block font-semibold text-slate-700 mb-1">
-              Pilih Madrasah Tsanawiyah <span className="text-rose-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block font-semibold text-slate-700">
+                Pilih Madrasah Tsanawiyah <span className="text-rose-500">*</span>
+              </label>
+              {selectedMadrasah && (
+                <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 flex items-center gap-1">
+                  <Users className="w-3 h-3 text-emerald-600" />
+                  {selectedMadrasah.studentCount || 0} Siswa ({formatRupiah(monthlyUnitDues)}/bln)
+                </span>
+              )}
+            </div>
             <select
               value={madrasahId}
-              onChange={(e) => setMadrasahId(e.target.value)}
+              onChange={(e) => handleSelectMadrasah(e.target.value)}
               required
               className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-300 bg-white font-medium text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-hidden"
             >
               {madrasahs.map((m) => (
                 <option key={m.id} value={m.id}>
-                  {m.name} ({m.status} - Kec. {m.subdistrict})
+                  {m.name} ({m.studentCount || 0} Siswa - {formatRupiah(getMadrasahMonthlyDues(m, org))}/bln)
                 </option>
               ))}
             </select>
@@ -374,19 +396,24 @@ export const QuickPaymentModal: React.FC<QuickPaymentModalProps> = ({
 
           {/* Quick Preset Amount Buttons */}
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] text-slate-500 mr-1">Preset:</span>
-            {[150000, 300000, 450000, 600000, 1800000].map((val) => (
+            <span className="text-[11px] text-slate-500 mr-1">Pilihan Cepat:</span>
+            {[
+              { label: '1 Bulan', val: monthlyUnitDues },
+              { label: '3 Bulan', val: monthlyUnitDues * 3 },
+              { label: '6 Bulan', val: monthlyUnitDues * 6 },
+              { label: '1 Tahun (12 Bln)', val: monthlyUnitDues * 12 },
+            ].map(({ label, val }) => (
               <button
-                key={val}
+                key={label}
                 type="button"
                 onClick={() => setAmount(val)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
                   amount === val
-                    ? 'bg-emerald-600 text-white border-emerald-600'
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                     : 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200'
                 }`}
               >
-                {formatRupiah(val)}
+                {label} ({formatRupiah(val)})
               </button>
             ))}
           </div>

@@ -95,6 +95,39 @@ export function isExpenseInAcademicYear(expense: { expenseDate?: string; date?: 
 }
 
 /**
+ * Calculate monthly dues for a specific madrasah based on student count (Rp 3.000 / siswa)
+ */
+export function getMadrasahMonthlyDues(madrasah?: Madrasah | null, org?: OrganizationConfig | null): number {
+  if (!madrasah) return org?.defaultMonthlyDues || 150000;
+  const ratePerStudent = org?.duesPerStudent ?? 3000;
+  if (typeof madrasah.studentCount === 'number' && madrasah.studentCount > 0) {
+    return madrasah.studentCount * ratePerStudent;
+  }
+  return org?.defaultMonthlyDues || 150000;
+}
+
+/**
+ * Calculate full academic year dues (12 months) for a madrasah
+ */
+export function getMadrasahAnnualDues(madrasah?: Madrasah | null, org?: OrganizationConfig | null): number {
+  return getMadrasahMonthlyDues(madrasah, org) * 12;
+}
+
+/**
+ * Get readable calculation formula string
+ * e.g. "250 Siswa × Rp 3.000 = Rp 750.000/bln"
+ */
+export function getMadrasahDuesFormula(madrasah?: Madrasah | null, org?: OrganizationConfig | null): string {
+  const rate = org?.duesPerStudent ?? 3000;
+  const count = madrasah?.studentCount || 0;
+  const total = getMadrasahMonthlyDues(madrasah, org);
+  if (count > 0) {
+    return `${count} Siswa × ${formatRupiah(rate)} = ${formatRupiah(total)}/bulan`;
+  }
+  return `${formatRupiah(total)}/bulan`;
+}
+
+/**
  * Format number to Indonesian Rupiah currency format
  * e.g. 150000 -> "Rp 150.000"
  */
@@ -216,11 +249,16 @@ export function generateDuesReminderWAMessage(
   unpaidMonths: Array<{ month: number; year: number }>,
   org: OrganizationConfig
 ): string {
-  const defaultFee = org.defaultMonthlyDues;
-  const totalAmount = unpaidMonths.length * defaultFee;
+  const monthlyDues = getMadrasahMonthlyDues(madrasah, org);
+  const totalAmount = unpaidMonths.length * monthlyDues;
   const monthListStr = unpaidMonths
     .map(item => `• ${MONTH_NAMES_ID[item.month - 1]} ${item.year}`)
     .join('\n');
+
+  const ratePerStudent = org.duesPerStudent ?? 3000;
+  const calculationNote = madrasah.studentCount > 0 
+    ? `Tarif: ${madrasah.studentCount} siswa × ${formatRupiah(ratePerStudent)} = ${formatRupiah(monthlyDues)}/bulan`
+    : `Tarif: ${formatRupiah(monthlyDues)}/bulan`;
 
   const bank = org.bankAccounts.find(b => b.isPrimary) || org.bankAccounts[0];
 
@@ -232,12 +270,12 @@ Yth. *${madrasah.treasurerName || 'Bendahara'} / ${madrasah.headmasterName || 'K
 
 Semoga Bpk/Ibu senantiasa dalam lindungan Allah SWT dan sukses menjalankan amanah pendidikan madrasah.
 
-Melalui pesan ini, kami dari pengurus KKMTS menyampaikan rekapitulasi iuran rutin organisasi yang *belum tercatat*:
+Melalui pesan ini, kami dari pengurus KKMTS menyampaikan rekapitulasi iuran rutin organisasi (${calculationNote}) yang *belum tercatat*:
 
 *Daftar Bulan Belum Lunas:*
 ${monthListStr}
 
-📊 *Total Tagihan:* ${formatRupiah(totalAmount)} (${unpaidMonths.length} Bulan)
+📊 *Total Tagihan:* ${formatRupiah(totalAmount)} (${unpaidMonths.length} Bulan × ${formatRupiah(monthlyDues)})
 
 *Penyaluran Pembayaran:*
 🏦 *Bank:* ${bank.bankName}

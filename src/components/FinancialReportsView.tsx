@@ -24,7 +24,8 @@ import {
   formatAcademicYearFull,
   isPaymentInAcademicYear,
   isExpenseInAcademicYear,
-  terbilang 
+  terbilang,
+  getMadrasahMonthlyDues 
 } from '../utils/formatters';
 import { exportBKUToCSV } from '../utils/exportUtils';
 
@@ -119,15 +120,18 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
       p => p.madrasahId === m.id && p.status === 'verified' && isPaymentInAcademicYear(p, selectedYear)
     );
 
+    const monthlyDuesRate = getMadrasahMonthlyDues(m, org);
     const paidMonthsCount = madrasahPayments.length;
     const totalPaid = madrasahPayments.reduce((sum, p) => sum + p.amount, 0);
 
     const unpaidCount = Math.max(0, 12 - paidMonthsCount);
-    const unpaidAmount = unpaidCount * org.defaultMonthlyDues;
+    const unpaidAmount = unpaidCount * monthlyDuesRate;
 
     return {
       no: idx + 1,
       madrasah: m,
+      studentCount: m.studentCount || 0,
+      monthlyDuesRate,
       paidMonthsCount,
       unpaidCount,
       totalPaid,
@@ -363,10 +367,12 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
                 <tr>
                   <th className="py-2.5 px-3 border-r border-slate-300 text-center w-8">No</th>
                   <th className="py-2.5 px-3 border-r border-slate-300">NSM / NPSN</th>
-                  <th className="py-2.5 px-3 border-r border-slate-300 min-w-[180px]">Nama Madrasah</th>
+                  <th className="py-2.5 px-3 border-r border-slate-300 min-w-[160px]">Nama Madrasah</th>
+                  <th className="py-2.5 px-3 border-r border-slate-300 text-center">Jml Siswa</th>
+                  <th className="py-2.5 px-3 border-r border-slate-300 text-right">Tarif / Bln</th>
                   <th className="py-2.5 px-3 border-r border-slate-300 text-center">Bulan Lunas</th>
-                  <th className="py-2.5 px-3 border-r border-slate-300 text-center">Bulan Tunggakan</th>
-                  <th className="py-2.5 px-3 border-r border-slate-300 text-right">Total Terbayar</th>
+                  <th className="py-2.5 px-3 border-r border-slate-300 text-center">Tunggakan</th>
+                  <th className="py-2.5 px-3 border-r border-slate-300 text-right">Terbayar</th>
                   <th className="py-2.5 px-3 border-r border-slate-300 text-right">Sisa Tunggakan (Rp)</th>
                   <th className="py-2.5 px-3 text-center">Status</th>
                 </tr>
@@ -384,11 +390,17 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
                     <td className="py-2 px-3 font-bold text-slate-900 border-r border-slate-200">
                       {item.madrasah.name}
                     </td>
+                    <td className="py-2 px-3 text-center font-bold text-slate-700 border-r border-slate-200">
+                      {item.studentCount}
+                    </td>
+                    <td className="py-2 px-3 text-right font-medium text-slate-700 border-r border-slate-200 whitespace-nowrap">
+                      {formatRupiah(item.monthlyDuesRate)}
+                    </td>
                     <td className="py-2 px-3 text-center font-bold text-emerald-800 border-r border-slate-200">
-                      {item.paidMonthsCount} Bulan
+                      {item.paidMonthsCount} Bln
                     </td>
                     <td className="py-2 px-3 text-center font-bold text-rose-700 border-r border-slate-200">
-                      {item.unpaidCount} Bulan
+                      {item.unpaidCount} Bln
                     </td>
                     <td className="py-2 px-3 text-right font-bold text-emerald-800 border-r border-slate-200">
                       {formatRupiah(item.totalPaid)}
@@ -409,7 +421,7 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
 
               <tfoot className="bg-slate-100 font-bold border-t-2 border-slate-400 text-slate-900 text-xs">
                 <tr>
-                  <td colSpan={5} className="py-2.5 px-3 text-right border-r border-slate-300 uppercase">
+                  <td colSpan={7} className="py-2.5 px-3 text-right border-r border-slate-300 uppercase">
                     Total Tunggakan Keseluruhan
                   </td>
                   <td className="py-2.5 px-3 text-right text-emerald-900 border-r border-slate-300">

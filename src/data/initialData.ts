@@ -10,7 +10,9 @@ export const INITIAL_ORGANIZATION_CONFIG: OrganizationConfig = {
   postalCode: '16161',
   contactEmail: 'kkmtskotabogor@gmail.com',
   contactPhone: '081289123456',
-  defaultMonthlyDues: 150000, // Rp 150.000 / bulan per MTs
+  duesPerStudent: 3000, // Rp 3.000 / siswa / bulan
+  defaultMonthlyDues: 450000, // Referensi flat (rata-rata 150 siswa x 3000)
+  duesCalculationType: 'per_student',
   chairmanName: 'Drs. H. Ahmad Fauzi, M.Pd.I',
   chairmanNip: '197105121998031002',
   treasurerName: 'Hj. Siti Rohmah, S.Ag., M.M.',
@@ -45,6 +47,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277801',
     name: 'MTs Negeri 1 Kota Bogor',
     status: 'Negeri',
+    studentCount: 420, // 420 siswa x Rp 3.000 = Rp 1.260.000/bln
     headmasterName: 'Drs. H. Ahmad Fauzi, M.Pd.I',
     treasurerName: 'Ustadzah Nurul Hidayati, S.Pd',
     phone: '081289123456',
@@ -59,6 +62,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277802',
     name: 'MTs Negeri 2 Kota Bogor',
     status: 'Negeri',
+    studentCount: 380, // 380 siswa x Rp 3.000 = Rp 1.140.000/bln
     headmasterName: 'Dra. Hj. Wartini, M.Pd',
     treasurerName: 'Dedi Kurniawan, S.E.',
     phone: '081387654321',
@@ -73,6 +77,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277803',
     name: 'MTs Al-Ihsan Bogor',
     status: 'Swasta',
+    studentCount: 250, // 250 siswa x Rp 3.000 = Rp 750.000/bln
     headmasterName: 'KH. Dr. Muhammad Syarif, M.A.',
     treasurerName: 'Ustadz Fathurrahman, S.Sos',
     phone: '085712345678',
@@ -87,6 +92,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277804',
     name: 'MTs Darul Quran Mulia',
     status: 'Swasta',
+    studentCount: 180, // 180 siswa x Rp 3.000 = Rp 540.000/bln
     headmasterName: 'Drs. H. Mansyur Hidayat',
     treasurerName: 'Siti Maryam, S.Pd.I',
     phone: '085890123456',
@@ -101,6 +107,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277805',
     name: 'MTs Nurul Huda Batutulis',
     status: 'Swasta',
+    studentCount: 140, // 140 siswa x Rp 3.000 = Rp 420.000/bln
     headmasterName: 'H. Abdul Qodir, M.Pd',
     treasurerName: 'Eneng Suhartini, A.Md',
     phone: '087812987654',
@@ -115,6 +122,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277806',
     name: 'MTs Muhammadiyah Kota Bogor',
     status: 'Swasta',
+    studentCount: 210, // 210 siswa x Rp 3.000 = Rp 630.000/bln
     headmasterName: 'Drs. Sudrajat, M.Si',
     treasurerName: 'Irfan Maulana, S.Kom',
     phone: '081298761234',
@@ -129,6 +137,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277807',
     name: 'MTs Tarbiyatul Falah',
     status: 'Swasta',
+    studentCount: 160, // 160 siswa x Rp 3.000 = Rp 480.000/bln
     headmasterName: 'Dra. Endang Setyawati',
     treasurerName: 'Rina Marlina, S.Pd',
     phone: '085211223344',
@@ -143,6 +152,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277808',
     name: 'MTs Sirojul Huda',
     status: 'Swasta',
+    studentCount: 120, // 120 siswa x Rp 3.000 = Rp 360.000/bln
     headmasterName: 'Ust. H. Bahrudin, S.Ag',
     treasurerName: 'Wahyu Nugroho, S.Pd',
     phone: '081908070605',
@@ -157,6 +167,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277809',
     name: 'MTs Insan Kamil Bogor',
     status: 'Swasta',
+    studentCount: 310, // 310 siswa x Rp 3.000 = Rp 930.000/bln
     headmasterName: 'Dr. H. M. Zainuri, M.A.',
     treasurerName: 'Fatimah Az-Zahra, S.Ak',
     phone: '081399887766',
@@ -171,6 +182,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277810',
     name: 'MTs Raudhatul Jannah',
     status: 'Swasta',
+    studentCount: 110, // 110 siswa x Rp 3.000 = Rp 330.000/bln
     headmasterName: 'H. Luqman Hakim, S.Pd.I',
     treasurerName: 'Dewi Lestari, S.Pd',
     phone: '087766554433',
@@ -185,6 +197,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277811',
     name: 'MTs Al-Ghazaly Bogor',
     status: 'Swasta',
+    studentCount: 195, // 195 siswa x Rp 3.000 = Rp 585.000/bln
     headmasterName: 'KH. Tubagus Mustofa, M.Pd',
     treasurerName: 'Asep Saepullah, S.Ag',
     phone: '081233445566',
@@ -199,6 +212,7 @@ export const INITIAL_MADRASAH_LIST: Madrasah[] = [
     npsn: '20277812',
     name: 'MTs Al-Azhar Plus Bogor',
     status: 'Swasta',
+    studentCount: 175, // 175 siswa x Rp 3.000 = Rp 525.000/bln
     headmasterName: 'Dra. Hj. Quratul Aini',
     treasurerName: 'Ilham Prasetyo, S.E.',
     phone: '085699887711',
@@ -218,7 +232,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahName: 'MTs Negeri 1 Kota Bogor',
     duesCategory: 'wajib_bulanan',
     categoryLabel: 'Iuran Rutin Bulanan KKMTS',
-    amount: 150000,
+    amount: 1260000, // 420 siswa x Rp 3.000
     periodMonth: 7,
     periodYear: 2026,
     paymentDate: '2026-07-08',
@@ -227,7 +241,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     senderAccountName: 'BENDAHARA MTSN 1 BOGOR',
     proofImageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
     proofFileName: 'bukti_transfer_bsi_mtsn1_jul26.jpg',
-    notes: 'Iuran KKMTS bulan Juli 2026 (Awal TA 2026/2027) via BSI Mobile.',
+    notes: 'Iuran KKMTS bulan Juli 2026 (420 siswa x Rp 3.000) via BSI Mobile.',
     status: 'verified',
     createdAt: '2026-07-08T09:30:00.000Z',
     verifiedAt: '2026-07-08T11:15:00.000Z',
@@ -240,7 +254,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
         targetPhone: '081289123456',
         targetName: 'Ustadzah Nurul Hidayati, S.Pd',
         type: 'verification_success',
-        messagePreview: 'Kwitansi KWT/KKMTS/2026/07/001 Terverifikasi Rp 150.000'
+        messagePreview: 'Kwitansi KWT/KKMTS/2026/07/001 Terverifikasi Rp 1.260.000'
       }
     ]
   },
@@ -252,7 +266,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahName: 'MTs Negeri 1 Kota Bogor',
     duesCategory: 'wajib_bulanan',
     categoryLabel: 'Iuran Rutin Bulanan KKMTS',
-    amount: 150000,
+    amount: 1260000,
     periodMonth: 8,
     periodYear: 2026,
     paymentDate: '2026-08-05',
@@ -260,7 +274,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     senderBankName: 'BSI',
     senderAccountName: 'BENDAHARA MTSN 1 BOGOR',
     proofImageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
-    notes: 'Iuran Agustus 2026.',
+    notes: 'Iuran Agustus 2026 (420 siswa x Rp 3.000).',
     status: 'verified',
     createdAt: '2026-08-05T08:20:00.000Z',
     verifiedAt: '2026-08-05T09:40:00.000Z',
@@ -274,7 +288,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-01',
     madrasahName: 'MTs Negeri 1 Kota Bogor',
     duesCategory: 'wajib_bulanan',
-    amount: 150000,
+    amount: 1260000,
     periodMonth: 9,
     periodYear: 2026,
     paymentDate: '2026-09-01',
@@ -292,7 +306,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-02',
     madrasahName: 'MTs Negeri 2 Kota Bogor',
     duesCategory: 'wajib_bulanan',
-    amount: 150000,
+    amount: 1140000, // 380 siswa x Rp 3.000
     periodMonth: 7,
     periodYear: 2026,
     paymentDate: '2026-07-10',
@@ -310,7 +324,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-02',
     madrasahName: 'MTs Negeri 2 Kota Bogor',
     duesCategory: 'wajib_bulanan',
-    amount: 150000,
+    amount: 1140000,
     periodMonth: 8,
     periodYear: 2026,
     paymentDate: '2026-08-09',
@@ -328,7 +342,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-03',
     madrasahName: 'MTs Al-Ihsan Bogor',
     duesCategory: 'wajib_bulanan',
-    amount: 150000,
+    amount: 750000, // 250 siswa x Rp 3.000
     periodMonth: 7,
     periodYear: 2026,
     paymentDate: '2026-07-12',
@@ -348,7 +362,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahName: 'MTs Al-Ihsan Bogor',
     duesCategory: 'wajib_bulanan',
     categoryLabel: 'Iuran Rutin Bulanan KKMTS',
-    amount: 150000,
+    amount: 750000,
     periodMonth: 8,
     periodYear: 2026,
     paymentDate: '2026-08-28',
@@ -357,7 +371,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     senderAccountName: 'YAYASAN AL IHSAN BOGOR',
     proofImageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
     proofFileName: 'transfer_bri_mts_alihsan_agu26.jpg',
-    notes: 'Transfer via BRImo pada tgl 28 Agu jam 16:30 WIB. Mohon diverifikasi.',
+    notes: 'Transfer via BRImo pada tgl 28 Agu (250 siswa x Rp 3.000). Mohon diverifikasi.',
     status: 'pending',
     createdAt: '2026-08-28T16:35:00.000Z',
     waNotified: false,
@@ -369,7 +383,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-04',
     madrasahName: 'MTs Darul Quran Mulia',
     duesCategory: 'wajib_bulanan',
-    amount: 150000,
+    amount: 540000, // 180 siswa x Rp 3.000
     periodMonth: 7,
     periodYear: 2026,
     paymentDate: '2026-07-18',
@@ -377,7 +391,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     senderAccountName: 'DARUL QURAN MULIA',
     proofImageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
     proofFileName: 'struk_qris_darul_quran_jul26.png',
-    notes: 'Pembayaran via QRIS dari bendahara MTs Darul Quran.',
+    notes: 'Pembayaran via QRIS dari bendahara MTs Darul Quran (180 siswa).',
     status: 'pending',
     createdAt: '2026-07-18T08:15:00.000Z',
     waNotified: false,
@@ -389,7 +403,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-05',
     madrasahName: 'MTs Nurul Huda Batutulis',
     duesCategory: 'wajib_bulanan',
-    amount: 150000,
+    amount: 420000, // 140 siswa x Rp 3.000
     periodMonth: 7,
     periodYear: 2026,
     paymentDate: '2026-07-20',
@@ -398,7 +412,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     senderAccountName: 'ENENG SUHARTINI',
     proofImageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
     proofFileName: 'bukti_bsi_nurulhuda_jul26.jpg',
-    notes: 'Transfer iuran Juli 2026 TA 2026/2027.',
+    notes: 'Transfer iuran Juli 2026 TA 2026/2027 (140 siswa x Rp 3.000).',
     status: 'pending',
     createdAt: '2026-07-20T10:00:00.000Z',
     waNotified: false,
@@ -410,7 +424,7 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-06',
     madrasahName: 'MTs Muhammadiyah Kota Bogor',
     duesCategory: 'wajib_bulanan',
-    amount: 150000,
+    amount: 630000, // 210 siswa x Rp 3.000
     periodMonth: 7,
     periodYear: 2026,
     paymentDate: '2026-07-15',
@@ -428,18 +442,18 @@ export const INITIAL_PAYMENT_RECORDS: PaymentRecord[] = [
     madrasahId: 'mts-09',
     madrasahName: 'MTs Insan Kamil Bogor',
     duesCategory: 'wajib_bulanan',
-    amount: 100000,
+    amount: 500000,
     periodMonth: 7,
     periodYear: 2026,
     paymentDate: '2026-07-20',
     paymentMethod: 'Transfer Bank BCA',
     proofImageUrl: 'https://images.unsplash.com/photo-1554224155-6726b3ff858f?auto=format&fit=crop&q=80&w=800',
-    notes: 'Pembayaran iuran Rp 100.000.',
+    notes: 'Pembayaran iuran Rp 500.000.',
     status: 'rejected',
     createdAt: '2026-07-20T13:00:00.000Z',
     verifiedAt: '2026-07-20T15:40:00.000Z',
     verifiedBy: 'Hj. Siti Rohmah, S.Ag',
-    rejectionReason: 'Nominal tidak sesuai ketentuan iuran wajib (Rp 150.000). Kurang Rp 50.000. Mohon transfer kekurangannya atau upload bukti transfer baru.',
+    rejectionReason: 'Nominal tidak sesuai ketentuan iuran wajib (310 siswa × Rp 3.000 = Rp 930.000). Kurang Rp 430.000. Mohon transfer kekurangannya atau upload bukti transfer baru.',
     waNotified: true,
   },
   // 11. Event Dues - AKSIOMA KKMTS 2026 (MTsN 1)

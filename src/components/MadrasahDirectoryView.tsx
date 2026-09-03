@@ -16,10 +16,11 @@ import {
   X,
   School,
   KeyRound,
-  Copy
+  Copy,
+  Users
 } from 'lucide-react';
 import { Madrasah, PaymentRecord, OrganizationConfig } from '../types';
-import { formatRupiah, createWALink } from '../utils/formatters';
+import { formatRupiah, createWALink, getMadrasahMonthlyDues } from '../utils/formatters';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { getMadrasahAccessCode } from '../utils/authUtils';
 
@@ -55,6 +56,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
   const [nsm, setNsm] = useState('');
   const [npsn, setNpsn] = useState('');
   const [status, setStatus] = useState<'Negeri' | 'Swasta'>('Swasta');
+  const [studentCount, setStudentCount] = useState<number>(100);
   const [headmasterName, setHeadmasterName] = useState('');
   const [treasurerName, setTreasurerName] = useState('');
   const [phone, setPhone] = useState('');
@@ -68,6 +70,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
     setNsm('');
     setNpsn('');
     setStatus('Swasta');
+    setStudentCount(100);
     setHeadmasterName('');
     setTreasurerName('');
     setPhone('');
@@ -83,6 +86,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
     setNsm(m.nsm);
     setNpsn(m.npsn);
     setStatus(m.status);
+    setStudentCount(m.studentCount || 100);
     setHeadmasterName(m.headmasterName);
     setTreasurerName(m.treasurerName);
     setPhone(m.phone);
@@ -103,6 +107,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
         nsm: nsm.trim() || editingMadrasah.nsm,
         npsn: npsn.trim() || editingMadrasah.npsn,
         status,
+        studentCount: Math.max(1, Number(studentCount) || 1),
         headmasterName: headmasterName.trim(),
         treasurerName: treasurerName.trim(),
         phone: phone.trim(),
@@ -118,6 +123,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
         nsm: nsm.trim() || '12123271' + Math.floor(1000 + Math.random() * 9000),
         npsn: npsn.trim() || '2027' + Math.floor(1000 + Math.random() * 9000),
         status,
+        studentCount: Math.max(1, Number(studentCount) || 1),
         headmasterName: headmasterName.trim(),
         treasurerName: treasurerName.trim() || 'Bendahara Madrasah',
         phone: phone.trim() || '081289123456',
@@ -281,8 +287,22 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
                   </span>
                 </div>
 
+                {/* Student Count & Dues Obligation Badge */}
+                <div className="mt-2.5 flex items-center justify-between bg-emerald-50/70 border border-emerald-200/80 px-2.5 py-1.5 rounded-xl text-xs">
+                  <div className="flex items-center gap-1.5 text-emerald-900 font-semibold">
+                    <Users className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{m.studentCount || 0} Siswa</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="font-extrabold text-emerald-800">
+                      {formatRupiah(getMadrasahMonthlyDues(m, org))}
+                    </span>
+                    <span className="text-[10px] text-slate-600 font-medium ml-1">/bulan</span>
+                  </div>
+                </div>
+
                 {/* Contact info list */}
-                <div className="mt-3.5 space-y-1.5 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div className="mt-2.5 space-y-1.5 text-xs text-slate-700 bg-slate-50 p-3 rounded-xl border border-slate-100">
                   <div>
                     <span className="text-[11px] text-slate-500 block">Kepala Madrasah:</span>
                     <strong className="text-slate-900">{m.headmasterName}</strong>
@@ -398,7 +418,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-2">
                 <div>
                   <label className="block font-semibold text-slate-700 mb-1">Status</label>
                   <select
@@ -409,6 +429,21 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
                     <option value="Swasta">Swasta</option>
                     <option value="Negeri">Negeri</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">
+                    Jml Siswa <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={studentCount}
+                    onChange={(e) => setStudentCount(Math.max(1, Number(e.target.value) || 1))}
+                    placeholder="100"
+                    className="w-full px-3 py-2 rounded-xl border border-emerald-300 bg-emerald-50/50 font-bold text-emerald-950 focus:outline-hidden text-xs"
+                  />
                 </div>
 
                 <div>
@@ -432,6 +467,17 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
                     className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-mono text-slate-900 focus:outline-hidden text-xs"
                   />
                 </div>
+              </div>
+
+              {/* Live dues preview info box */}
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs flex items-center justify-between">
+                <span className="text-slate-600 font-medium flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-emerald-600" />
+                  Kewajiban Iuran: <strong>{studentCount} siswa</strong> × Rp {(org.duesPerStudent || 3000).toLocaleString('id-ID')}
+                </span>
+                <span className="font-extrabold text-emerald-800 text-sm">
+                  {formatRupiah(studentCount * (org.duesPerStudent || 3000))} / bulan
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-3">

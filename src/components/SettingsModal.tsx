@@ -9,7 +9,8 @@ import {
   RotateCcw,
   Check,
   Plus,
-  Trash2
+  Trash2,
+  Users
 } from 'lucide-react';
 import { OrganizationConfig, BankAccount } from '../types';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
@@ -42,6 +43,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [treasurerName, setTreasurerName] = useState(config.treasurerName);
   const [treasurerNip, setTreasurerNip] = useState(config.treasurerNip || '');
   const [defaultMonthlyDues, setDefaultMonthlyDues] = useState(config.defaultMonthlyDues);
+  const [duesPerStudent, setDuesPerStudent] = useState<number>(config.duesPerStudent || 3000);
+  const [duesCalculationType, setDuesCalculationType] = useState<'per_student' | 'fixed'>(config.duesCalculationType || 'per_student');
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(config.bankAccounts);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -85,6 +88,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       treasurerName: treasurerName.trim(),
       treasurerNip: treasurerNip.trim() || undefined,
       defaultMonthlyDues,
+      duesPerStudent,
+      duesCalculationType,
       bankAccounts,
     };
     onSave(updated);
@@ -274,20 +279,46 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <DollarSign className="w-4 h-4 text-emerald-700" /> Tarif Iuran & Rekening Bank
             </h4>
 
-            <div>
-              <label className="block font-semibold text-slate-700 mb-1">
-                Besaran Iuran Bulanan Default per Madrasah (Rp)
-              </label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                required
-                value={defaultMonthlyDues === 0 ? '' : defaultMonthlyDues}
-                onChange={(e) => setDefaultMonthlyDues(e.target.value === '' ? 0 : Number(e.target.value))}
-                placeholder="Bebas isi nominal..."
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 bg-white font-bold text-emerald-700 focus:outline-hidden"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 space-y-1.5">
+                <label className="block font-bold text-emerald-950 text-xs flex items-center gap-1">
+                  <Users className="w-3.5 h-3.5 text-emerald-700" />
+                  Tarif Iuran per Siswa (Rp / Siswa)
+                </label>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1.5 text-slate-500 text-xs font-bold">Rp</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    required
+                    value={duesPerStudent === 0 ? '' : duesPerStudent}
+                    onChange={(e) => setDuesPerStudent(e.target.value === '' ? 0 : Number(e.target.value))}
+                    placeholder="3000"
+                    className="w-full pl-8 pr-3 py-1.5 rounded-lg border border-emerald-300 bg-white font-black text-emerald-800 text-sm focus:outline-hidden"
+                  />
+                </div>
+                <p className="text-[10px] text-emerald-800">
+                  Tagihan tiap MTs = (Jumlah Siswa × Rp {duesPerStudent.toLocaleString('id-ID')}) / bulan
+                </p>
+              </div>
+
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1.5">
+                <label className="block font-bold text-slate-800 text-xs">
+                  Model Perhitungan Iuran
+                </label>
+                <select
+                  value={duesCalculationType}
+                  onChange={(e) => setDuesCalculationType(e.target.value as any)}
+                  className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 bg-white font-semibold text-slate-900 text-xs focus:outline-hidden"
+                >
+                  <option value="per_student">Proporsional per Siswa (Rp 3.000 / Siswa)</option>
+                  <option value="fixed">Flat Rate Tetap per Madrasah</option>
+                </select>
+                <p className="text-[10px] text-slate-500">
+                  {duesCalculationType === 'per_student' ? 'Tiap MTs beda iuran sesuai jumlah murid' : 'Semua MTs nominal iuran sama rata'}
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">

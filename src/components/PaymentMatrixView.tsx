@@ -10,7 +10,8 @@ import {
   Filter, 
   Building2, 
   Plus,
-  FileText
+  FileText,
+  Users
 } from 'lucide-react';
 import { Madrasah, PaymentRecord, OrganizationConfig } from '../types';
 import { 
@@ -21,7 +22,8 @@ import {
   formatAcademicYearFull,
   isPaymentInAcademicYear,
   generateDuesReminderWAMessage, 
-  createWALink 
+  createWALink,
+  getMadrasahMonthlyDues
 } from '../utils/formatters';
 import { exportMatrixToCSV } from '../utils/exportUtils';
 
@@ -44,8 +46,8 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
   onSelectPaymentForVerification,
   onSelectPaymentForReceipt,
 }) => {
-  const [filterStatus, setFilterStatus] = useState<'all' | 'unpaid_only' | 'fully_paid'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'all' | 'unpaid_only' | 'fully_paid'>('all');
 
   // Matrix calculation based on 12 Academic Months (Juli -> Juni)
   const matrixData = madrasahs.map((m) => {
@@ -77,10 +79,12 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
       .filter(p => p.madrasahId === m.id && isPaymentInAcademicYear(p, selectedYear) && p.status === 'verified')
       .reduce((sum, p) => sum + p.amount, 0);
 
-    const totalArrears = unpaidMonths.length * org.defaultMonthlyDues;
+    const monthlyDues = getMadrasahMonthlyDues(m, org);
+    const totalArrears = unpaidMonths.length * monthlyDues;
 
     return {
       madrasah: m,
+      monthlyDues,
       monthlyStatuses,
       verifiedMonths,
       unpaidMonths,
@@ -134,7 +138,7 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
             Matriks Pembayaran Iuran 12 Bulan ({academicLabel})
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            Monitoring rekapitulasi kepatuhan iuran Juli {selectedYear} s.d. Juni {selectedYear + 1} ({formatAcademicYearFull(selectedYear)})
+            Monitoring rekapitulasi kepatuhan iuran berbasis jumlah siswa (Rp 3.000/siswa/bulan) untuk periode Juli {selectedYear} s.d. Juni {selectedYear + 1} ({formatAcademicYearFull(selectedYear)})
           </p>
         </div>
 
@@ -179,63 +183,100 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari madrasah..."
-            className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white text-slate-800 focus:outline-hidden"
+            placeholder="Cari nama MTs..."
+            className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
           />
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value as any)}
-            className="px-3 py-1.5 text-xs rounded-xl border border-slate-300 bg-white font-semibold text-slate-700 focus:outline-hidden"
-          >
-            <option value="all">Semua Status ({madrasahs.length})</option>
-            <option value="unpaid_only">Ada Tunggakan</option>
-            <option value="fully_paid">Lunas Penuh (12 Bln)</option>
-          </select>
+
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs">
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                filterStatus === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Semua
+            </button>
+            <button
+              onClick={() => setFilterStatus('unpaid_only')}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                filterStatus === 'unpaid_only' ? 'bg-rose-600 text-white shadow-xs' : 'text-rose-700 hover:bg-rose-50'
+              }`}
+            >
+              Ada Tunggakan
+            </button>
+            <button
+              onClick={() => setFilterStatus('fully_paid')}
+              className={`px-2.5 py-1 rounded-lg font-semibold transition-colors cursor-pointer ${
+                filterStatus === 'fully_paid' ? 'bg-emerald-600 text-white shadow-xs' : 'text-emerald-700 hover:bg-emerald-50'
+              }`}
+            >
+              Lunas 12 Bln
+            </button>
+          </div>
         </div>
 
       </div>
 
-      {/* 12-Month Matrix Table */}
+      {/* 12-Month Academic Matrix Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead className="bg-slate-900 text-white font-semibold text-[11px] uppercase tracking-wider">
-              <tr>
-                <th className="py-3 px-3 text-center border-r border-slate-800 w-10">No</th>
-                <th className="py-3 px-3 min-w-[200px] border-r border-slate-800">Nama Madrasah</th>
-                {ACADEMIC_MONTHS.map((am, i) => (
-                  <th key={i} className="py-3 px-1.5 text-center border-r border-slate-800 min-w-[46px]" title={`${am.name} ${am.getYear(selectedYear)}`}>
+          <table className="w-full text-xs text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px] tracking-wider">
+                <th className="py-3 px-4 sticky left-0 bg-slate-50 z-10 w-48 border-r border-slate-200">
+                  Madrasah Tsanawiyah
+                </th>
+                <th className="py-3 px-2 text-center border-r border-slate-200 w-24">
+                  Siswa & Tarif
+                </th>
+                {ACADEMIC_MONTHS.map((am) => (
+                  <th key={am.order} className="py-3 px-2 text-center border-r border-slate-200 min-w-[54px]">
                     <div>{am.shortName}</div>
-                    <div className="text-[9px] text-slate-400 font-normal">'{String(am.getYear(selectedYear)).slice(-2)}</div>
+                    <div className="text-[9px] text-slate-400 font-normal">
+                      {am.getYear(selectedYear).toString().slice(2)}
+                    </div>
                   </th>
                 ))}
-                <th className="py-3 px-3 text-center border-r border-slate-800 min-w-[70px]">Lunas</th>
-                <th className="py-3 px-3 text-right border-r border-slate-800 min-w-[95px]">Total Masuk</th>
-                <th className="py-3 px-3 text-right border-r border-slate-800 min-w-[95px]">Tunggakan</th>
-                <th className="py-3 px-3 text-center min-w-[80px]">Pengingat</th>
+                <th className="py-3 px-2 text-center border-r border-slate-200 w-16">
+                  Lunas
+                </th>
+                <th className="py-3 px-3 text-right border-r border-slate-200 min-w-[90px]">
+                  Total Disetor
+                </th>
+                <th className="py-3 px-3 text-right border-r border-slate-200 min-w-[90px]">
+                  Tunggakan
+                </th>
+                <th className="py-3 px-3 text-center w-16">
+                  Aksi
+                </th>
               </tr>
             </thead>
-
-            <tbody className="divide-y divide-slate-200 text-slate-800">
-              {filteredRows.map((row, idx) => (
+            <tbody className="divide-y divide-slate-100">
+              {filteredRows.map((row) => (
                 <tr key={row.madrasah.id} className="hover:bg-slate-50/80 transition-colors">
                   
-                  {/* Number */}
-                  <td className="py-2.5 px-3 text-center font-bold text-slate-500 border-r border-slate-100">
-                    {idx + 1}
-                  </td>
-
-                  {/* School Name */}
-                  <td className="py-2.5 px-3 font-semibold text-slate-900 border-r border-slate-100">
-                    <div className="truncate max-w-[220px]" title={row.madrasah.name}>
+                  {/* Madrasah Name Column */}
+                  <td className="py-2.5 px-4 font-semibold text-slate-900 sticky left-0 bg-white hover:bg-slate-50 z-10 border-r border-slate-200 shadow-xs">
+                    <div className="truncate max-w-[190px]" title={row.madrasah.name}>
                       {row.madrasah.name}
                     </div>
-                    <div className="text-[10px] text-slate-500 font-normal">
-                      {row.madrasah.status} • {row.madrasah.subdistrict}
+                    <div className="text-[10px] text-slate-400 font-normal truncate">
+                      {row.madrasah.status} • Kec. {row.madrasah.subdistrict}
                     </div>
                   </td>
 
-                  {/* 12 Academic Months Cells (Juli -> Juni) */}
+                  {/* Student count & monthly dues */}
+                  <td className="py-2.5 px-2 text-center border-r border-slate-100">
+                    <span className="inline-flex items-center gap-1 font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-[10px]">
+                      <Users className="w-3 h-3 text-emerald-600" />
+                      {row.madrasah.studentCount || 0}
+                    </span>
+                    <span className="block text-[9px] text-slate-500 mt-0.5">
+                      {formatRupiah(row.monthlyDues)}
+                    </span>
+                  </td>
+
+                  {/* 12 Month Cells */}
                   {row.monthlyStatuses.map((cell) => {
                     const isVerified = cell.status === 'verified';
                     const isPending = cell.status === 'pending';
@@ -248,7 +289,7 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
                         {isVerified && (
                           <button
                             onClick={() => cell.paymentRecord && onSelectPaymentForReceipt(cell.paymentRecord)}
-                            title={`Lunas (${cell.fullName} ${cell.calendarYear}). Klik utk kwitansi.`}
+                            title={`Lunas (${cell.fullName} ${cell.calendarYear} - ${formatRupiah(cell.paymentRecord?.amount || row.monthlyDues)}). Klik utk kwitansi.`}
                             className="w-8 h-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold flex items-center justify-center mx-auto transition-transform hover:scale-110 shadow-2xs cursor-pointer"
                           >
                             <CheckCircle2 className="w-4 h-4" />
@@ -268,7 +309,7 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
                         {!isVerified && !isPending && (
                           <button
                             onClick={() => onOpenNewPaymentForMonth(row.madrasah.id, cell.monthNum)}
-                            title={`Belum Bayar (${cell.fullName} ${cell.calendarYear}). Klik untuk catat iuran.`}
+                            title={`Belum Bayar (${cell.fullName} ${cell.calendarYear} - Tagihan: ${formatRupiah(row.monthlyDues)}). Klik untuk catat iuran.`}
                             className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-400 font-medium flex items-center justify-center mx-auto transition-colors border border-transparent hover:border-emerald-300 cursor-pointer"
                           >
                             <span className="text-[10px] font-bold">+</span>
@@ -325,7 +366,7 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-2">
           <span>* Format Tahun Ajaran: Juli {selectedYear} s.d. Juni {selectedYear + 1}. Klik tombol + untuk mencatat setoran iuran.</span>
           <div className="font-semibold text-slate-800">
-            Tarif Iuran Wajib: <strong>{formatRupiah(org.defaultMonthlyDues)} / bulan / madrasah</strong>
+            Perhitungan Iuran Anggota: <strong>Rp {(org.duesPerStudent || 3000).toLocaleString('id-ID')} / siswa / bulan</strong> (Setiap MTs memiliki besaran sesuai jumlah siswa)
           </div>
         </div>
 
