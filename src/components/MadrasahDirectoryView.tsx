@@ -33,6 +33,7 @@ interface MadrasahDirectoryViewProps {
   onUpdateMadrasah: (updatedMadrasah: Madrasah) => void;
   onDeleteMadrasah: (madrasahId: string) => void;
   onOpenPaymentForMadrasah: (madrasahId: string) => void;
+  onNavigateToAccessCodes?: () => void;
 }
 
 export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
@@ -44,6 +45,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
   onUpdateMadrasah,
   onDeleteMadrasah,
   onOpenPaymentForMadrasah,
+  onNavigateToAccessCodes,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'Negeri' | 'Swasta'>('all');
@@ -170,13 +172,27 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={openAddModal}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold rounded-xl shadow-sm shadow-emerald-600/20 transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Tambah Madrasah Anggota
-        </button>
+        <div className="flex flex-wrap items-center gap-2.5">
+          {onNavigateToAccessCodes && (
+            <button
+              type="button"
+              onClick={onNavigateToAccessCodes}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 text-indigo-800 text-xs sm:text-sm font-bold rounded-xl border border-indigo-200 shadow-2xs transition-all cursor-pointer"
+            >
+              <KeyRound className="w-4 h-4 text-indigo-600" />
+              <span>Atur Kode Akses</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={openAddModal}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-bold rounded-xl shadow-sm shadow-emerald-600/20 transition-all cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Tambah Madrasah</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter & Search Bar */}

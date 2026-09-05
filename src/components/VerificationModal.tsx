@@ -32,9 +32,10 @@ interface VerificationModalProps {
   payment: PaymentRecord | null;
   madrasah: Madrasah | undefined;
   org: OrganizationConfig;
-  onClose: () => void;
-  onVerify: (paymentId: string, notes?: string) => void;
-  onReject: (paymentId: string, reason: string) => void;
+  onClose?: () => void;
+  onVerify?: (paymentId: string, notes?: string) => void;
+  onApprove?: (paymentId: string, notes?: string) => void;
+  onReject?: (paymentId: string, reason: string) => void;
 }
 
 export const VerificationModal: React.FC<VerificationModalProps> = ({
@@ -43,8 +44,14 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
   org,
   onClose,
   onVerify,
+  onApprove,
   onReject,
 }) => {
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [rejecting, setRejecting] = useState(false);
@@ -78,13 +85,19 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
         origin: { y: 0.6 }
       });
     } catch {}
-    onVerify(payment.id, adminNotes);
+    if (typeof onVerify === 'function') {
+      onVerify(payment.id, adminNotes);
+    } else if (typeof onApprove === 'function') {
+      onApprove(payment.id, adminNotes);
+    }
   };
 
   const handleRejectSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectionReason.trim()) return;
-    onReject(payment.id, rejectionReason);
+    if (typeof onReject === 'function') {
+      onReject(payment.id, rejectionReason);
+    }
   };
 
   // Smart Slip AI Extraction helper
@@ -107,7 +120,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
     >
@@ -136,7 +149,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onClose();
+              handleClose();
             }}
             aria-label="Tutup Verifikasi"
             className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-900 active:text-slate-950 rounded-xl bg-slate-200/70 hover:bg-slate-200 active:bg-slate-300 transition-colors cursor-pointer shrink-0"
@@ -385,7 +398,7 @@ export const VerificationModal: React.FC<VerificationModalProps> = ({
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={onClose}
+                    onClick={handleClose}
                     className="px-3 py-2.5 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
                   >
                     Tutup

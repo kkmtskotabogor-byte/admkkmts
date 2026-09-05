@@ -1028,6 +1028,7 @@ export const FeeManagementView: React.FC<FeeManagementViewProps> = ({
           message={`Apakah Anda yakin ingin menghapus pos iuran "${itemToDelete.name}" (${itemToDelete.code})? Data iuran yang sudah disetor sebelumnya tetap tersimpan di riwayat transaksi.`}
           confirmLabel="Ya, Hapus Pos Iuran"
           onConfirm={handleConfirmDelete}
+          onClose={() => setItemToDelete(null)}
           onCancel={() => setItemToDelete(null)}
         />
       )}

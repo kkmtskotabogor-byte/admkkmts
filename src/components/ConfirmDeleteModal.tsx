@@ -7,10 +7,13 @@ interface ConfirmDeleteModalProps {
   itemName?: string;
   message?: string;
   confirmText?: string;
+  confirmLabel?: string;
   cancelText?: string;
+  cancelLabel?: string;
   isDestructive?: boolean;
   onConfirm: () => void;
-  onClose: () => void;
+  onClose?: () => void;
+  onCancel?: () => void;
 }
 
 export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
@@ -18,20 +21,41 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
   title = 'Konfirmasi Hapus Data',
   itemName,
   message,
-  confirmText = 'Ya, Hapus',
-  cancelText = 'Batal',
+  confirmText,
+  confirmLabel,
+  cancelText,
+  cancelLabel,
   isDestructive = true,
   onConfirm,
   onClose,
+  onCancel,
 }) => {
   if (!isOpen) return null;
+
+  const actualConfirmText = confirmText || confirmLabel || 'Ya, Lanjutkan';
+  const actualCancelText = cancelText || cancelLabel || 'Batal';
+
+  const handleDismiss = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    } else if (typeof onCancel === 'function') {
+      onCancel();
+    }
+  };
+
+  const handleConfirmAction = () => {
+    if (typeof onConfirm === 'function') {
+      onConfirm();
+    }
+    handleDismiss();
+  };
 
   return (
     <div 
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/70 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          onClose();
+          handleDismiss();
         }
       }}
     >
@@ -45,7 +69,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            onClose();
+            handleDismiss();
           }}
           aria-label="Tutup"
           className="absolute top-4 right-4 w-9 h-9 flex items-center justify-center text-slate-400 hover:text-slate-700 active:text-slate-900 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
@@ -82,11 +106,11 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onClose();
+              handleDismiss();
             }}
             className="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 active:bg-slate-200 text-xs sm:text-sm font-semibold transition-colors cursor-pointer min-h-[42px]"
           >
-            {cancelText}
+            {actualCancelText}
           </button>
           
           <button
@@ -94,8 +118,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onConfirm();
-              onClose();
+              handleConfirmAction();
             }}
             className={`px-5 py-2.5 rounded-xl text-white text-xs sm:text-sm font-bold shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer min-h-[42px] ${
               isDestructive 
@@ -104,7 +127,7 @@ export const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({
             }`}
           >
             {isDestructive && <Trash2 className="w-4 h-4" />}
-            {confirmText}
+            {actualConfirmText}
           </button>
         </div>
       </div>

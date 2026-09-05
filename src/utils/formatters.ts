@@ -343,6 +343,47 @@ export function createWALink(phone: string, text: string): string {
 }
 
 /**
+ * Generate formatted WhatsApp message for sending access code to a Madrasah
+ */
+export function generateAccessCodeWAMessage(
+  targetName: string,
+  madrasahName: string,
+  accessCode: string,
+  org: OrganizationConfig
+): string {
+  return `*🔐 KODE AKSES PORTAL MANDIRI ${org.shortName || 'KKMTS'}*
+
+Assalamu'alaikum Wr. Wb.
+Kepada Yth. *${targetName}*
+*${madrasahName}*
+
+Semoga Bpk/Ibu senantiasa dalam keadaan sehat wal'afiat dan lancar dalam menjalankan aktivitas madrasah.
+
+Berikut kami sampaikan kredensial resmi untuk mengakses *Portal Keuangan & Iuran Mandiri ${org.shortName || 'KKMTS'}*:
+
+🏫 *Madrasah:* ${madrasahName}
+🔑 *Kode Akses / PIN:* *${accessCode}*
+
+*Manfaat Akses Portal:*
+1. Melihat rincian kewajiban iuran bulanan (${org.duesPerStudent ? `Rp ${org.duesPerStudent.toLocaleString('id-ID')} / siswa` : 'rutin'})
+2. Mengecek status verifikasi dan riwayat pembayaran lunas
+3. Mengunduh Kuitansi Pembayaran resmi ber-tanda tangan & stempel digital
+4. Mengunggah bukti setoran / transfer bank secara mandiri tanpa harus mengirim berkas fisik
+
+*Cara Masuk:*
+1. Buka Aplikasi Web KKMTS
+2. Klik tombol *Ganti Role / Masuk Portal*
+3. Masukkan Kode Akses: *${accessCode}*
+
+Mohon simpan kode akses ini dengan baik. Jika membutuhkan bantuan atau kendala akses, silakan hubungi sekretariat KKMTS.
+
+Wassalamu'alaikum Wr. Wb.
+_Pengurus ${org.shortName || 'KKMTS'}_
+Ketua: *${org.chairmanName}*
+Bendahara: *${org.treasurerName}*`;
+}
+
+/**
  * Generate automatic Receipt Number: KWT/KKMTS/YYYY/MM/NNN
  */
 export function generateReceiptNumber(sequence: number, month: number, year: number): string {

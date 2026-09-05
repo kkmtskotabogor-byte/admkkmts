@@ -81,7 +81,7 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
       date: e.date,
       code: e.voucherNumber,
       category: e.category,
-      description: `${e.title} (Penerima: ${e.recipient})`,
+      description: `${e.title}${e.feeItemName ? ` [Pos: ${e.feeItemName}]` : ''} (Penerima: ${e.recipient})`,
       debit: 0,
       credit: e.amount,
       type: 'expense' as const,
@@ -242,8 +242,16 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
         
         {/* Formal Header Kop Surat Kemenag / KKMTS */}
         <div className="border-b-2 border-slate-900 pb-4 flex items-start gap-4">
-          <div className="w-16 h-16 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-3xl shrink-0 print:border print:border-slate-800">
-            <Building2 className="w-9 h-9" />
+          <div className="w-16 h-16 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-3xl shrink-0 print:border print:border-slate-800 overflow-hidden p-0.5">
+            {org.logoUrl ? (
+              <img 
+                src={org.logoUrl} 
+                alt="Logo Organisasi" 
+                className="w-full h-full object-contain rounded-lg bg-white" 
+              />
+            ) : (
+              <Building2 className="w-9 h-9" />
+            )}
           </div>
           <div className="flex-1 text-center pr-12">
             <p className="text-xs uppercase tracking-widest font-semibold text-slate-600">

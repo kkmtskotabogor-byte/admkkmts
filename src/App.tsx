@@ -12,6 +12,9 @@ import { WhatsAppHubView } from './components/WhatsAppHubView';
 import { MadrasahDirectoryView } from './components/MadrasahDirectoryView';
 import { FeeManagementView } from './components/FeeManagementView';
 import { MemberPortalView } from './components/MemberPortalView';
+import { AccessCodesView } from './components/AccessCodesView';
+import { OrganizationProfileView } from './components/OrganizationProfileView';
+import { MobileBottomNav } from './components/MobileBottomNav';
 import { QuickPaymentModal } from './components/QuickPaymentModal';
 import { VerificationModal } from './components/VerificationModal';
 import { ReceiptModal } from './components/ReceiptModal';
@@ -181,6 +184,11 @@ export const App: React.FC = () => {
     StorageService.saveMadrasahs(updated);
   };
 
+  const handleUpdateMultipleMadrasahs = (updatedList: Madrasah[]) => {
+    setMadrasahs(updatedList);
+    StorageService.saveMadrasahs(updatedList);
+  };
+
   const handleDeleteMadrasah = (madrasahId: string) => {
     const updated = madrasahs.filter(m => m.id !== madrasahId);
     setMadrasahs(updated);
@@ -260,7 +268,7 @@ export const App: React.FC = () => {
         />
 
         {/* Dynamic Bento View Main Area */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6 pb-24 lg:pb-8">
           
           {/* ROLE 1: KETUA (Semua menu) */}
           {activeTab === 'dashboard' && currentRole === 'ketua' && (
@@ -308,6 +316,8 @@ export const App: React.FC = () => {
           {activeTab === 'expenses' && (currentRole === 'ketua' || currentRole === 'bendahara') && (
             <ExpensesView
               expenses={expenses}
+              feeItems={feeItems}
+              payments={payments}
               org={orgConfig}
               selectedYear={selectedYear}
               onAddExpense={handleAddExpense}
@@ -371,6 +381,27 @@ export const App: React.FC = () => {
                 setDefaultPaymentFeeItemId(undefined);
                 setIsPaymentModalOpen(true);
               }}
+              onNavigateToAccessCodes={() => setActiveTab('access_codes')}
+            />
+          )}
+
+          {/* ROLE 1: KETUA - Pengaturan & Distribusi Kode Akses */}
+          {activeTab === 'access_codes' && currentRole === 'ketua' && (
+            <AccessCodesView
+              madrasahs={madrasahs}
+              org={orgConfig}
+              onUpdateMadrasah={handleUpdateMadrasah}
+              onUpdateMultipleMadrasahs={handleUpdateMultipleMadrasahs}
+              onUpdateOrgConfig={(cfg) => setOrgConfig(cfg)}
+              onSwitchSession={handleLoginSuccess}
+            />
+          )}
+
+          {/* ROLE 1: KETUA - Pengaturan Identitas & Logo KKMTS */}
+          {activeTab === 'organization' && currentRole === 'ketua' && (
+            <OrganizationProfileView
+              org={orgConfig}
+              onUpdateOrgConfig={(cfg) => setOrgConfig(cfg)}
             />
           )}
 
@@ -392,7 +423,7 @@ export const App: React.FC = () => {
         </main>
 
         {/* Bento Footer */}
-        <footer className="bg-white border-t border-slate-200/80 py-5 text-xs text-slate-500 print:hidden mt-auto">
+        <footer className="bg-white border-t border-slate-200/80 py-5 text-xs text-slate-500 print:hidden mt-auto pb-24 lg:pb-5">
           <div className="px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
             <div>
               <p className="font-bold text-slate-800">
@@ -415,6 +446,25 @@ export const App: React.FC = () => {
             </div>
           </div>
         </footer>
+
+        {/* Mobile Bottom Navigation Bar */}
+        <MobileBottomNav
+          activeTab={activeTab}
+          setActiveTab={(tab) => {
+            setActiveTab(tab);
+            setIsMobileMenuOpen(false);
+          }}
+          currentRole={currentRole}
+          session={session}
+          pendingPaymentsCount={pendingPaymentsCount}
+          onOpenNewPayment={handleOpenNewPayment}
+          onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          onOpenLoginModal={() => {
+            setIsLoginModalOpen(true);
+            setIsMobileMenuOpen(false);
+          }}
+          isMobileMenuOpen={isMobileMenuOpen}
+        />
 
       </div>
 
@@ -457,6 +507,7 @@ export const App: React.FC = () => {
           madrasah={madrasahs.find(m => m.id === verificationPayment.madrasahId)}
           org={orgConfig}
           onClose={() => setVerificationPayment(null)}
+          onVerify={(id) => handleApprovePayment(id)}
           onApprove={(id) => handleApprovePayment(id)}
           onReject={(id, reason) => handleRejectPayment(id, reason)}
         />
@@ -478,6 +529,7 @@ export const App: React.FC = () => {
           onClose={() => setIsSettingsOpen(false)}
           onSave={(newCfg) => setOrgConfig(newCfg)}
           onResetData={handleResetData}
+          onNavigateToOrgProfile={() => setActiveTab('organization')}
         />
       )}
 

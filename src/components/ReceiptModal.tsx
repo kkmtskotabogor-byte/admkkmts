@@ -25,7 +25,7 @@ interface ReceiptModalProps {
   payment: PaymentRecord | null;
   madrasah: Madrasah | undefined;
   org: OrganizationConfig;
-  onClose: () => void;
+  onClose?: () => void;
   onMarkNotified?: (paymentId: string) => void;
 }
 
@@ -38,6 +38,12 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 }) => {
   const receiptPrintRef = useRef<HTMLDivElement>(null);
   const [copied, setCopied] = React.useState(false);
+
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
 
   if (!payment) return null;
 
@@ -75,7 +81,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6 print:p-0 print:bg-white"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
     >
@@ -109,7 +115,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                onClose();
+                handleClose();
               }}
               aria-label="Tutup Kwitansi"
               className="w-9 h-9 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-500 hover:text-slate-900 active:text-slate-950 rounded-xl bg-slate-200/70 hover:bg-slate-200 active:bg-slate-300 transition-colors cursor-pointer"
@@ -124,8 +130,16 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
           
           {/* Header Kop Surat KKMTS */}
           <div className="border-b-2 border-slate-900 pb-4 flex items-start gap-4">
-            <div className="w-14 h-14 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-2xl shrink-0 print:border print:border-slate-800">
-              <Building2 className="w-8 h-8" />
+            <div className="w-14 h-14 rounded-xl bg-emerald-700 text-white flex items-center justify-center font-bold text-2xl shrink-0 print:border print:border-slate-800 overflow-hidden p-0.5">
+              {org.logoUrl ? (
+                <img 
+                  src={org.logoUrl} 
+                  alt="Logo Organisasi" 
+                  className="w-full h-full object-contain rounded-lg bg-white" 
+                />
+              ) : (
+                <Building2 className="w-8 h-8" />
+              )}
             </div>
             <div className="flex-1 text-center pr-10">
               <p className="text-[11px] uppercase tracking-widest font-semibold text-slate-600">

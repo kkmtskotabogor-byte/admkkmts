@@ -107,7 +107,7 @@ export function exportBKUToCSV(
     ...filteredExpenses.map(e => ({
       date: e.date,
       code: e.voucherNumber,
-      description: `${e.title} - Penerima: ${e.recipient}`,
+      description: `${e.title}${e.feeItemName ? ` [Pos: ${e.feeItemName}]` : ''} - Penerima: ${e.recipient}`,
       category: e.category,
       debit: 0,
       credit: e.amount

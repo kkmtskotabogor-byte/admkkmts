@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Settings, 
   X, 
@@ -10,17 +10,22 @@ import {
   Check,
   Plus,
   Trash2,
-  Users
+  Users,
+  Image as ImageIcon,
+  Upload,
+  ExternalLink
 } from 'lucide-react';
 import { OrganizationConfig, BankAccount } from '../types';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
+import { resizeImageToDataUrl } from '../utils/logoPresets';
 
 interface SettingsModalProps {
   config: OrganizationConfig;
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   onSave: (updatedConfig: OrganizationConfig) => void;
   onResetData: () => void;
+  onNavigateToOrgProfile?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -29,7 +34,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onClose,
   onSave,
   onResetData,
+  onNavigateToOrgProfile,
 }) => {
+  const handleClose = () => {
+    if (typeof onClose === 'function') {
+      onClose();
+    }
+  };
   const [orgName, setOrgName] = useState(config.orgName);
   const [shortName, setShortName] = useState(config.shortName);
   const [regency, setRegency] = useState(config.regency);
@@ -42,13 +53,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [chairmanNip, setChairmanNip] = useState(config.chairmanNip || '');
   const [treasurerName, setTreasurerName] = useState(config.treasurerName);
   const [treasurerNip, setTreasurerNip] = useState(config.treasurerNip || '');
+  const [logoUrl, setLogoUrl] = useState<string>(config.logoUrl || '');
   const [defaultMonthlyDues, setDefaultMonthlyDues] = useState(config.defaultMonthlyDues);
   const [duesPerStudent, setDuesPerStudent] = useState<number>(config.duesPerStudent || 3000);
-  const [duesCalculationType, setDuesCalculationType] = useState<'per_student' | 'fixed'>(config.duesCalculationType || 'per_student');
+  const [duesCalculationType, setDuesCalculationType] = useState<'per_student' | 'fixed_flat'>((config.duesCalculationType as any) || 'per_student');
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>(config.bankAccounts);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const handleModalLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      try {
+        const dataUrl = await resizeImageToDataUrl(file, 400, 400, 0.9);
+        setLogoUrl(dataUrl);
+      } catch (err) {
+        alert('Gagal memproses gambar logo.');
+      }
+    }
+  };
 
   const handleAddBank = () => {
     setBankAccounts([
@@ -87,13 +112,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       chairmanNip: chairmanNip.trim() || undefined,
       treasurerName: treasurerName.trim(),
       treasurerNip: treasurerNip.trim() || undefined,
+      logoUrl: logoUrl.trim() || undefined,
       defaultMonthlyDues,
       duesPerStudent,
       duesCalculationType,
       bankAccounts,
     };
     onSave(updated);
-    onClose();
+    handleClose();
   };
 
   return (
@@ -101,7 +127,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-6"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
-          onClose();
+          handleClose();
         }
       }}
     >
@@ -126,7 +152,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              onClose();
+              handleClose();
             }}
             aria-label="Tutup Pengaturan"
             className="w-10 h-10 min-w-[40px] min-h-[40px] flex items-center justify-center text-slate-500 hover:text-slate-900 active:text-slate-950 rounded-xl bg-slate-200/70 hover:bg-slate-200 active:bg-slate-300 transition-colors cursor-pointer shrink-0"
@@ -140,9 +166,78 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           
           {/* Section: Identitas Organisasi */}
           <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 flex items-center gap-1.5 border-b pb-1 text-xs uppercase tracking-wider text-slate-500">
-              <Building2 className="w-4 h-4 text-emerald-700" /> Identitas Organisasi
-            </h4>
+            <div className="flex items-center justify-between border-b pb-1">
+              <h4 className="font-bold text-slate-900 flex items-center gap-1.5 text-xs uppercase tracking-wider text-slate-500">
+                <Building2 className="w-4 h-4 text-emerald-700" /> Identitas Organisasi & Logo
+              </h4>
+              {onNavigateToOrgProfile && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    onNavigateToOrgProfile();
+                  }}
+                  className="text-xs text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 hover:underline cursor-pointer"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  <span>Menu Lengkap Logo KKMTS</span>
+                </button>
+              )}
+            </div>
+
+            {/* Quick Logo Upload in Modal */}
+            <div className="p-3.5 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-white border border-emerald-300 p-1 flex items-center justify-center shrink-0 shadow-2xs overflow-hidden">
+                {logoUrl ? (
+                  <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                ) : (
+                  <Building2 className="w-7 h-7 text-emerald-700" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-xs text-slate-800">Logo Resmi Lembaga</span>
+                  {logoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setLogoUrl('')}
+                      className="text-[11px] text-rose-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    ref={modalFileInputRef}
+                    onChange={handleModalLogoUpload}
+                    accept="image/*"
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => modalFileInputRef.current?.click()}
+                    className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-300 rounded-lg text-xs font-semibold text-slate-700 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Pilih Gambar</span>
+                  </button>
+                  {onNavigateToOrgProfile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleClose();
+                        onNavigateToOrgProfile();
+                      }}
+                      className="text-xs text-emerald-800 font-bold hover:underline cursor-pointer"
+                    >
+                      Pilih Preset Logo
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -390,7 +485,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={onClose}
+                onClick={handleClose}
                 className="px-4 py-2 text-xs font-medium text-slate-600 hover:bg-slate-100 rounded-xl cursor-pointer"
               >
                 Tutup
@@ -420,7 +515,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           onConfirm={() => {
             onResetData();
             setShowResetConfirm(false);
-            onClose();
+            handleClose();
           }}
           onClose={() => setShowResetConfirm(false)}
         />

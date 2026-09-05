@@ -98,6 +98,16 @@ export const Header: React.FC<HeaderProps> = ({
           title: 'Direktori Madrasah Anggota',
           subtitle: 'Database kontak Kepala Madrasah, Bendahara, dan nomor WhatsApp.'
         };
+      case 'access_codes':
+        return {
+          title: 'Pengaturan & Distribusi Kode Akses',
+          subtitle: 'Kelola PIN / password login Ketua, Bendahara, dan kode akses unik setiap madrasah anggota.'
+        };
+      case 'organization':
+        return {
+          title: 'Identitas & Logo KKMTS',
+          subtitle: 'Kelola logo resmi, nama lembaga, susunan pimpinan pengurus, kontak, dan rekening bank penerimaan.'
+        };
       case 'portal':
         return {
           title: currentRole === 'anggota' ? `Portal Iuran ${session?.madrasahName || 'Madrasah'}` : 'Portal Mandiri Madrasah',

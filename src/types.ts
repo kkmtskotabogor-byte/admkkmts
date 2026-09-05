@@ -48,6 +48,7 @@ export interface Madrasah {
   subdistrict: string; // Kecamatan
   isActive: boolean;
   avatarUrl?: string;
+  customAccessCode?: string; // Custom PIN / Kode Akses Madrasah
 }
 
 export interface PaymentNotificationLog {
@@ -102,6 +103,8 @@ export interface ExpenseRecord {
   voucherNumber: string; // e.g. BKK/KKMTS/2025/08/015
   title: string;
   category: ExpenseCategory;
+  feeItemId?: string; // ID Pos Iuran sumber dana yang dikeluarkan
+  feeItemName?: string; // Nama Pos Iuran sumber dana
   amount: number;
   date: string; // YYYY-MM-DD
   recipient: string;
@@ -143,6 +146,10 @@ export interface OrganizationConfig {
   fiscalYear: number;
   waGatewaySenderNumber?: string;
   enableAutoWaReminder?: boolean;
+  ketuaAccessCode?: string;
+  bendaharaAccessCode?: string;
+  logoUrl?: string;
+  website?: string;
 }
 
 export type AppRole = 'ketua' | 'bendahara' | 'anggota';
@@ -165,5 +172,7 @@ export type ActiveTab =
   | 'reports'
   | 'whatsapp'
   | 'madrasah'
+  | 'access_codes'
+  | 'organization'
   | 'portal';
 

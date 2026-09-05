@@ -14,7 +14,13 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { Madrasah, OrganizationConfig, AuthSession } from '../types';
-import { ADMIN_CREDENTIALS, getMadrasahAccessCode, verifyAccessCode } from '../utils/authUtils';
+import { 
+  ADMIN_CREDENTIALS, 
+  getMadrasahAccessCode, 
+  getKetuaAccessCode, 
+  getBendaharaAccessCode, 
+  verifyAccessCode 
+} from '../utils/authUtils';
 
 interface LoginPortalModalProps {
   isOpen: boolean;
@@ -47,7 +53,7 @@ export const LoginPortalModal: React.FC<LoginPortalModalProps> = ({
     e.preventDefault();
     setErrorMessage(null);
 
-    const result = verifyAccessCode(inputCode, madrasahs, org.chairmanName, org.treasurerName);
+    const result = verifyAccessCode(inputCode, madrasahs, org);
     if (result.success && result.session) {
       onLoginSuccess(result.session);
     } else {
@@ -58,18 +64,20 @@ export const LoginPortalModal: React.FC<LoginPortalModalProps> = ({
   const handleQuickLogin = (role: 'ketua' | 'bendahara') => {
     setErrorMessage(null);
     if (role === 'ketua') {
+      const activeKetua = getKetuaAccessCode(org);
       onLoginSuccess({
         role: 'ketua',
         userName: org.chairmanName || ADMIN_CREDENTIALS.ketua.defaultName,
         userTitle: 'Ketua KKMTS (Full Akses Seluruh Menu)',
-        accessCode: ADMIN_CREDENTIALS.ketua.code,
+        accessCode: activeKetua,
       });
     } else {
+      const activeBendahara = getBendaharaAccessCode(org);
       onLoginSuccess({
         role: 'bendahara',
         userName: org.treasurerName || ADMIN_CREDENTIALS.bendahara.defaultName,
         userTitle: 'Bendahara KKMTS (Penerimaan Iuran & Kas Keluar)',
-        accessCode: ADMIN_CREDENTIALS.bendahara.code,
+        accessCode: activeBendahara,
       });
     }
   };
@@ -119,7 +127,11 @@ export const LoginPortalModal: React.FC<LoginPortalModalProps> = ({
             {allowClose && onClose && (
               <button
                 type="button"
-                onClick={onClose}
+                onClick={() => {
+                  if (typeof onClose === 'function') {
+                    onClose();
+                  }
+                }}
                 className="w-9 h-9 flex items-center justify-center text-emerald-300 hover:text-white rounded-xl bg-emerald-950/50 hover:bg-emerald-900 transition-colors cursor-pointer shrink-0"
               >
                 ✕
@@ -327,11 +339,11 @@ export const LoginPortalModal: React.FC<LoginPortalModalProps> = ({
                   <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-[11px] text-slate-600">
                     <div className="flex justify-between py-1 border-b border-slate-200">
                       <span className="font-semibold text-slate-800">Ketua KKMTS:</span>
-                      <code className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold font-mono">KETUA-KKMTS</code>
+                      <code className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-bold font-mono">{getKetuaAccessCode(org)}</code>
                     </div>
                     <div className="flex justify-between py-1 border-b border-slate-200">
                       <span className="font-semibold text-slate-800">Bendahara KKMTS:</span>
-                      <code className="bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded font-bold font-mono">BENDAHARA-KKMTS</code>
+                      <code className="bg-emerald-100 text-emerald-900 px-1.5 py-0.5 rounded font-bold font-mono">{getBendaharaAccessCode(org)}</code>
                     </div>
                     <div className="pt-1">
                       <p className="font-semibold text-slate-800 mb-1">Kode Unik Per Madrasah Anggota:</p>
