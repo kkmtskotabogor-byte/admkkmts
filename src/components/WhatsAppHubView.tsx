@@ -31,6 +31,7 @@ import {
   isExpenseInAcademicYear,
   getMadrasahMonthlyDues
 } from '../utils/formatters';
+import { calculateMadrasahDuesAllocation } from '../utils/duesAllocation';
 
 interface WhatsAppHubViewProps {
   madrasahs: Madrasah[];
@@ -58,31 +59,28 @@ export const WhatsAppHubView: React.FC<WhatsAppHubViewProps> = ({
   // Selected school for reminder
   const selectedMadrasah = madrasahs.find(m => m.id === selectedMadrasahId) || madrasahs[0];
 
-  // Calculate unpaid months for selected school
-  const verifiedPaymentsForMadrasah = payments.filter(
-    p => p.madrasahId === selectedMadrasah?.id && isPaymentInAcademicYear(p, selectedYear) && p.status === 'verified'
-  );
-  const paidMonthKeys = new Set(verifiedPaymentsForMadrasah.map(p => `${p.periodMonth}-${p.periodYear}`));
+  // Calculate unpaid/partial months for selected school using sequential allocation
+  const selectedDues = selectedMadrasah 
+    ? calculateMadrasahDuesAllocation(selectedMadrasah, payments, org, selectedYear)
+    : null;
 
-  const unpaidMonths = ACADEMIC_MONTHS
-    .map(mObj => ({ month: mObj.monthIndex, year: mObj.getYear(selectedYear) }))
-    .filter(item => !paidMonthKeys.has(`${item.month}-${item.year}`));
+  const unpaidMonths = selectedDues 
+    ? selectedDues.cells
+        .filter(c => c.status === 'unpaid' || c.status === 'partial')
+        .map(c => ({ month: c.monthNum, year: c.calendarYear }))
+    : [];
 
   // List of all schools with arrears
   const schoolsWithArrears = madrasahs.map((m) => {
-    const paidMonths = new Set(
-      payments
-        .filter(p => p.madrasahId === m.id && isPaymentInAcademicYear(p, selectedYear) && p.status === 'verified')
-        .map(p => `${p.periodMonth}-${p.periodYear}`)
-    );
-    const unpaids = ACADEMIC_MONTHS
-      .map(mObj => ({ month: mObj.monthIndex, year: mObj.getYear(selectedYear) }))
-      .filter(item => !paidMonths.has(`${item.month}-${item.year}`));
+    const dues = calculateMadrasahDuesAllocation(m, payments, org, selectedYear);
+    const unpaids = dues.cells
+      .filter(c => c.status === 'unpaid' || c.status === 'partial')
+      .map(c => ({ month: c.monthNum, year: c.calendarYear }));
     
     return {
       madrasah: m,
       unpaids,
-      unpaidAmount: unpaids.length * getMadrasahMonthlyDues(m, org),
+      unpaidAmount: dues.totalArrears,
     };
   }).filter(item => item.unpaids.length > 0);
 

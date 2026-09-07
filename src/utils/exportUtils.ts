@@ -8,6 +8,7 @@ import {
   isPaymentInAcademicYear, 
   isExpenseInAcademicYear 
 } from './formatters';
+import { calculateMadrasahDuesAllocation } from './duesAllocation';
 
 /**
  * Trigger CSV download in the browser with UTF-8 BOM so Excel opens it without character corruption
@@ -144,7 +145,8 @@ export function exportBKUToCSV(
 export function exportMatrixToCSV(
   madrasahs: Madrasah[],
   payments: PaymentRecord[],
-  academicYear: number
+  academicYear: number,
+  org?: OrganizationConfig
 ) {
   const monthHeaders = ACADEMIC_MONTHS.map(m => `${m.shortName} ${m.getYear(academicYear)}`);
 
@@ -153,39 +155,42 @@ export function exportMatrixToCSV(
     'NSM',
     'Nama Madrasah',
     'Status',
+    'Jumlah Siswa',
+    'Tarif Bulanan (Rp)',
     ...monthHeaders,
-    'Total Bulan Lunas',
-    'Total Terbayar (Rp)',
+    'Bulan Lunas',
+    'Bulan Kuning (Parsial)',
+    'Total Disetor (Rp)',
     'Sisa Tunggakan (Rp)'
   ];
 
   const rows = madrasahs.map((m, idx) => {
-    const monthlyStatus = ACADEMIC_MONTHS.map((am) => {
-      const calendarYear = am.getYear(academicYear);
-      const verified = payments.find(p => p.madrasahId === m.id && p.periodMonth === am.monthIndex && p.periodYear === calendarYear && p.status === 'verified');
-      const pending = payments.find(p => p.madrasahId === m.id && p.periodMonth === am.monthIndex && p.periodYear === calendarYear && p.status === 'pending');
-      
-      if (verified) return 'LUNAS';
-      if (pending) return 'PENDING';
-      return 'BELUM';
-    });
+    const dues = calculateMadrasahDuesAllocation(
+      m, 
+      payments, 
+      org || ({ defaultMonthlyDues: 150000, duesPerStudent: 3000 } as OrganizationConfig), 
+      academicYear
+    );
 
-    const verifiedCount = monthlyStatus.filter(s => s === 'LUNAS').length;
-    const totalPaid = payments
-      .filter(p => p.madrasahId === m.id && isPaymentInAcademicYear(p, academicYear) && p.status === 'verified')
-      .reduce((sum, p) => sum + p.amount, 0);
-    const unpaidCount = 12 - verifiedCount;
-    const remainingDues = unpaidCount * 150000;
+    const monthlyStatus = dues.cells.map((cell) => {
+      if (cell.status === 'verified') return 'LUNAS (HIJAU)';
+      if (cell.status === 'partial') return `KUNING (Terbayar ${cell.paidAmount} / Sisa ${cell.remainingDeficit})`;
+      if (cell.status === 'pending') return 'MENUNGGU VERIFIKASI';
+      return 'BELUM BAYAR';
+    });
 
     return [
       idx + 1,
       `"${m.nsm}"`,
       `"${m.name}"`,
       `"${m.status}"`,
+      m.studentCount || 0,
+      dues.monthlyDues,
       ...monthlyStatus.map(s => `"${s}"`),
-      verifiedCount,
-      totalPaid,
-      remainingDues
+      dues.verifiedMonthsCount,
+      dues.partialMonthsCount,
+      dues.totalVerifiedPaid,
+      dues.totalArrears
     ];
   });
 

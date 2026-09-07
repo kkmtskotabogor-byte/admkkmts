@@ -29,6 +29,7 @@ import {
   getMadrasahDuesFormula
 } from '../utils/formatters';
 import { getMadrasahAccessCode } from '../utils/authUtils';
+import { calculateMadrasahDuesAllocation } from '../utils/duesAllocation';
 
 interface MemberPortalViewProps {
   madrasahs: Madrasah[];
@@ -37,7 +38,7 @@ interface MemberPortalViewProps {
   org: OrganizationConfig;
   session: AuthSession | null;
   selectedYear: number;
-  onOpenNewPaymentForMonth: (madrasahId: string, month: number, feeItemId?: string) => void;
+  onOpenNewPaymentForMonth: (madrasahId: string, month: number, feeItemId?: string, year?: number, defaultAmount?: number) => void;
   onSelectPaymentForReceipt: (payment: PaymentRecord) => void;
   onOpenLoginModal?: () => void;
 }
@@ -80,15 +81,18 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
   const verifiedPayments = madrasahPayments.filter(p => p.status === 'verified');
   const pendingPayments = madrasahPayments.filter(p => p.status === 'pending');
 
-  // Bulanan stats
-  const verifiedMonthlyPayments = verifiedPayments.filter(
-    p => !p.feeItemId || p.duesCategory === 'wajib_bulanan' || p.categoryLabel === 'Iuran Rutin Bulanan KKMTS'
-  );
-  const paidMonthsCount = verifiedMonthlyPayments.length;
-  const unpaidMonthsCount = Math.max(0, 12 - paidMonthsCount);
-  const totalPaidMonthlyAmount = verifiedMonthlyPayments.reduce((s, p) => s + p.amount, 0);
-  const monthlyDuesRate = selectedMadrasah ? getMadrasahMonthlyDues(selectedMadrasah, org) : (org.duesPerStudent || 3000);
-  const totalMonthlyArrears = unpaidMonthsCount * monthlyDuesRate;
+  // Sequential multi-month dues allocation
+  const duesAllocation = selectedMadrasah 
+    ? calculateMadrasahDuesAllocation(selectedMadrasah, payments, org, selectedYear)
+    : null;
+
+  // Bulanan stats from sequential allocation
+  const paidMonthsCount = duesAllocation?.verifiedMonthsCount || 0;
+  const partialMonthsCount = duesAllocation?.partialMonthsCount || 0;
+  const unpaidMonthsCount = duesAllocation?.unpaidMonthsCount || 0;
+  const totalPaidMonthlyAmount = duesAllocation?.totalVerifiedPaid || 0;
+  const monthlyDuesRate = duesAllocation?.monthlyDues || (selectedMadrasah ? getMadrasahMonthlyDues(selectedMadrasah, org) : (org.duesPerStudent || 3000));
+  const totalMonthlyArrears = duesAllocation?.totalArrears || 0;
 
   // Other special fee items (exclude wajib_bulanan)
   const otherFeeItems = feeItems.filter(f => f.category !== 'wajib_bulanan' && f.isActive);
@@ -250,7 +254,7 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
 
             <button
               type="button"
-              onClick={() => onOpenNewPaymentForMonth(selectedMadrasah.id, 7)}
+              onClick={() => onOpenNewPaymentForMonth(selectedMadrasah.id, 7, undefined, selectedYear)}
               className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 transition-all cursor-pointer"
             >
               <Upload className="w-4 h-4" />
@@ -271,9 +275,19 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
                 <div className="text-2xl font-extrabold text-emerald-800">
                   {formatRupiah(grandTotalPaid)}
                 </div>
-                <p className="text-xs text-slate-500 font-semibold mt-1">
-                  {paidMonthsCount} dari 12 Bulan Rutin Lunas
+                <p className="text-xs text-slate-500 font-semibold mt-1 flex items-center gap-1.5">
+                  <span>{paidMonthsCount} dari 12 Bulan Rutin Lunas</span>
+                  {partialMonthsCount > 0 && (
+                    <span className="text-[10px] font-black text-amber-950 bg-amber-200 border border-amber-300 px-1.5 py-0.5 rounded-sm">
+                      +{partialMonthsCount} bln kuning
+                    </span>
+                  )}
                 </p>
+                {pendingPayments.length > 0 && (
+                  <p className="text-[11px] text-amber-700 font-bold mt-1 bg-amber-50 px-2 py-0.5 rounded-md inline-block border border-amber-200">
+                    ⏳ {pendingPayments.length} setoran menunggu verifikasi bendahara
+                  </p>
+                )}
               </div>
               <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
                 <div 
@@ -355,41 +369,68 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 text-xs">
-          {ACADEMIC_MONTHS.map((mObj) => {
-            const mNum = mObj.monthIndex;
-            const calYear = mObj.getYear(selectedYear);
-            const verified = madrasahPayments.find(p => p.periodMonth === mNum && p.periodYear === calYear && p.status === 'verified');
-            const pending = madrasahPayments.find(p => p.periodMonth === mNum && p.periodYear === calYear && p.status === 'pending');
+          {(duesAllocation ? duesAllocation.cells : ACADEMIC_MONTHS.map(mObj => ({
+            monthNum: mObj.monthIndex,
+            shortName: mObj.shortName,
+            fullName: mObj.name,
+            calendarYear: mObj.getYear(selectedYear),
+            paidAmount: 0,
+            pendingAmount: 0,
+            remainingDeficit: monthlyDuesRate,
+            status: 'unpaid' as const,
+            paymentRecord: null
+          }))).map((cell) => {
+            const isVerified = cell.status === 'verified';
+            const isPartial = cell.status === 'partial';
+            const isPending = cell.status === 'pending';
 
             return (
               <div
-                key={mObj.order}
+                key={cell.monthNum}
                 className={`p-3.5 rounded-2xl border transition-all flex flex-col justify-between space-y-2 ${
-                  verified
+                  isVerified
                     ? 'bg-emerald-50/70 border-emerald-300 shadow-xs'
-                    : pending
+                    : isPartial
+                    ? 'bg-amber-50 border-amber-400 shadow-xs'
+                    : isPending
                     ? 'bg-amber-50/70 border-amber-300 animate-pulse'
                     : 'bg-slate-50 border-slate-200 hover:border-slate-300'
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-800 text-sm">{mObj.name}</span>
-                  <span className="text-[10px] text-slate-400 font-mono">{calYear}</span>
+                  <span className="font-bold text-slate-800 text-sm">{cell.fullName}</span>
+                  <span className="text-[10px] text-slate-400 font-mono">{cell.calendarYear}</span>
                 </div>
 
                 <div>
-                  {verified && (
+                  {isVerified && (
                     <div className="space-y-1">
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full">
-                        <CheckCircle2 className="w-3 h-3" /> LUNAS ({formatRupiah(verified.amount)})
+                        <CheckCircle2 className="w-3 h-3" /> LUNAS ({formatRupiah(cell.paidAmount || monthlyDuesRate)})
                       </span>
-                      <p className="text-[10px] text-slate-500 font-mono">
-                        {verified.receiptNumber}
+                      {cell.paymentRecord && (
+                        <p className="text-[10px] text-slate-500 font-mono">
+                          {cell.paymentRecord.receiptNumber}
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {isPartial && (
+                    <div className="space-y-1">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-amber-950 bg-amber-200 border border-amber-300 px-2 py-0.5 rounded-full">
+                        <AlertCircle className="w-3 h-3 text-amber-800" /> BELUM LUNAS (KUNING)
+                      </span>
+                      <p className="text-[10px] text-slate-700">
+                        Terbayar: <strong>{formatRupiah(cell.paidAmount)}</strong>
+                      </p>
+                      <p className="text-[10px] text-amber-800 font-bold">
+                        Kurang: {formatRupiah(cell.remainingDeficit)}
                       </p>
                     </div>
                   )}
 
-                  {pending && (
+                  {isPending && (
                     <div className="space-y-1">
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full">
                         <Clock className="w-3 h-3" /> Menunggu Verifikasi
@@ -398,7 +439,7 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
                     </div>
                   )}
 
-                  {!verified && !pending && (
+                  {!isVerified && !isPartial && !isPending && (
                     <div className="space-y-1">
                       <span className="inline-block text-[11px] font-semibold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
                         Kewajiban Belum Dibayar
@@ -409,19 +450,28 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
                 </div>
 
                 <div className="pt-2 border-t border-slate-200/60">
-                  {verified ? (
+                  {isVerified && cell.paymentRecord ? (
                     <button
                       type="button"
-                      onClick={() => onSelectPaymentForReceipt(verified)}
+                      onClick={() => onSelectPaymentForReceipt(cell.paymentRecord!)}
                       className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                     >
                       <FileText className="w-3.5 h-3.5" />
                       Unduh Kwitansi
                     </button>
+                  ) : isPartial ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenNewPaymentForMonth(selectedMadrasah.id, cell.monthNum, undefined, cell.calendarYear, cell.remainingDeficit)}
+                      className="w-full py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <Upload className="w-3.5 h-3.5" />
+                      Lunasi Sisa ({formatRupiah(cell.remainingDeficit)})
+                    </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => onOpenNewPaymentForMonth(selectedMadrasah.id, mNum)}
+                      onClick={() => onOpenNewPaymentForMonth(selectedMadrasah.id, cell.monthNum, undefined, cell.calendarYear, monthlyDuesRate)}
                       className="w-full py-1.5 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer"
                     >
                       <Upload className="w-3.5 h-3.5 text-slate-500" />
@@ -529,7 +579,7 @@ export const MemberPortalView: React.FC<MemberPortalViewProps> = ({
                     )}
                     <button
                       type="button"
-                      onClick={() => onOpenNewPaymentForMonth(selectedMadrasah.id, 7, fee.id)}
+                      onClick={() => onOpenNewPaymentForMonth(selectedMadrasah.id, 7, fee.id, selectedYear)}
                       className={`flex-1 py-1.5 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer ${
                         isPaid && fee.isMandatory
                           ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'

@@ -20,7 +20,8 @@ import {
   Users
 } from 'lucide-react';
 import { Madrasah, PaymentRecord, OrganizationConfig } from '../types';
-import { formatRupiah, createWALink, getMadrasahMonthlyDues } from '../utils/formatters';
+import { formatRupiah, createWALink, getMadrasahMonthlyDues, formatAcademicYear } from '../utils/formatters';
+import { calculateMadrasahDuesAllocation } from '../utils/duesAllocation';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { getMadrasahAccessCode } from '../utils/authUtils';
 
@@ -289,12 +290,11 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
       {/* Grid of Madrasah Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredMadrasahs.map((m) => {
-          const paidPayments = payments.filter(
-            p => p.madrasahId === m.id && p.periodYear === selectedYear && p.status === 'verified'
-          );
-          const paidMonthsCount = paidPayments.length;
-          const totalPaid = paidPayments.reduce((s, p) => s + p.amount, 0);
-          const isLunas = paidMonthsCount === 12;
+          const dues = calculateMadrasahDuesAllocation(m, payments, org, selectedYear);
+          const paidMonthsCount = dues.verifiedMonthsCount;
+          const partialMonthsCount = dues.partialMonthsCount;
+          const totalPaid = dues.totalVerifiedPaid;
+          const isLunas = dues.isFullyPaid;
 
           return (
             <div
@@ -378,22 +378,46 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
                 </div>
               </div>
 
-              {/* Dues Progress Bar for Selected Year */}
+              {/* Dues Progress Bar for Selected Academic Year */}
               <div className="pt-2 border-t border-slate-100 text-xs">
-                <div className="flex justify-between items-center mb-1">
-                  <span className="text-slate-500 font-medium">Iuran {selectedYear}:</span>
-                  <span className="font-bold text-slate-900">
-                    {paidMonthsCount}/12 Bulan ({formatRupiah(totalPaid)})
+                <div className="flex justify-between items-start mb-1.5 gap-2">
+                  <span className="text-slate-500 font-medium whitespace-nowrap">
+                    Iuran {formatAcademicYear(selectedYear)}:
                   </span>
+                  <div className="text-right">
+                    <div className="font-bold text-slate-900 flex items-center justify-end flex-wrap gap-1">
+                      <span>{paidMonthsCount}/12 Bulan</span>
+                      {partialMonthsCount > 0 && (
+                        <span className="text-[10px] font-extrabold text-amber-950 bg-amber-200 border border-amber-300 px-1.5 py-0.5 rounded leading-none">
+                          +{partialMonthsCount} bln kuning
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-emerald-800 font-semibold block mt-0.5">
+                      {formatRupiah(totalPaid)}
+                    </span>
+                  </div>
                 </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden flex">
                   <div
-                    className={`h-full rounded-full transition-all ${
-                      isLunas ? 'bg-emerald-600' : 'bg-amber-500'
-                    }`}
+                    className="h-full bg-emerald-600 transition-all"
                     style={{ width: `${Math.round((paidMonthsCount / 12) * 100)}%` }}
+                    title={`${paidMonthsCount} Bulan Ceklis Lunas (Hijau)`}
                   />
+                  {partialMonthsCount > 0 && (
+                    <div
+                      className="h-full bg-amber-400 transition-all"
+                      style={{ width: `${Math.round((partialMonthsCount / 12) * 100)}%` }}
+                      title={`${partialMonthsCount} Bulan Kuning (Belum Lunas Penuh)`}
+                    />
+                  )}
                 </div>
+                {dues.totalArrears > 0 && (
+                  <div className="flex justify-between items-center text-[10px] text-slate-500 mt-1">
+                    <span>Sisa tunggakan TA:</span>
+                    <span className="font-bold text-rose-700">{formatRupiah(dues.totalArrears)}</span>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

@@ -95,6 +95,14 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
   const pendingCount = academicPayments.filter(p => p.status === 'pending').length;
   const verifiedCount = academicPayments.filter(p => p.status === 'verified').length;
   const rejectedCount = academicPayments.filter(p => p.status === 'rejected').length;
+  const otherYearPaymentsCount = payments.filter(p => !isPaymentInAcademicYear(p, selectedYear)).length;
+
+  const handleResetFilters = () => {
+    setSelectedStatus('all');
+    setSelectedMonthKey('all');
+    setSelectedMadrasahId('all');
+    setSearchQuery('');
+  };
 
   const totalFilteredAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
 
@@ -271,10 +279,45 @@ export const PaymentsView: React.FC<PaymentsViewProps> = ({
             <tbody className="divide-y divide-slate-100 text-slate-800">
               {filteredPayments.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="py-12 text-center text-slate-400">
-                    <FileText className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                    <p className="font-semibold text-slate-600">Tidak ada data pembayaran yang sesuai filter.</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Coba ubah kata kunci pencarian atau filter bulan/status.</p>
+                  <td colSpan={8} className="py-12 px-4 text-center">
+                    <div className="max-w-md mx-auto space-y-3">
+                      <FileText className="w-10 h-10 mx-auto text-slate-300" />
+                      <div>
+                        <p className="font-bold text-slate-700 text-sm">
+                          {payments.length === 0 
+                            ? 'Belum ada transaksi pembayaran yang tercatat'
+                            : 'Tidak ada pembayaran yang sesuai dengan filter aktif'}
+                        </p>
+                        <p className="text-xs text-slate-500 mt-1">
+                          {payments.length === 0
+                            ? 'Mulai dengan mencatat iuran masuk dari madrasah anggota.'
+                            : `Filter aktif pada Tahun Ajaran ${formatAcademicYear(selectedYear)}. ${
+                                otherYearPaymentsCount > 0 
+                                  ? `(Terdapat ${otherYearPaymentsCount} transaksi di Tahun Ajaran lain).` 
+                                  : ''
+                              }`}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center justify-center gap-2 pt-2">
+                        {payments.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleResetFilters}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs transition-colors cursor-pointer"
+                          >
+                            Reset Filter Tampilan
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={onOpenNewPayment}
+                          className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-xs transition-colors cursor-pointer"
+                        >
+                          + Catat Pembayaran Baru
+                        </button>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ) : (

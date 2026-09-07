@@ -22,7 +22,8 @@ import { ReceiptModal } from './components/ReceiptModal';
 import { SettingsModal } from './components/SettingsModal';
 import { LoginPortalModal } from './components/LoginPortalModal';
 import { ADMIN_CREDENTIALS } from './utils/authUtils';
-import { isPaymentInAcademicYear } from './utils/formatters';
+import { isPaymentInAcademicYear, formatRupiah, MONTH_NAMES_ID, getPaymentAcademicYear } from './utils/formatters';
+import { CheckCircle2, AlertCircle, X, ExternalLink } from 'lucide-react';
 
 export const App: React.FC = () => {
   // Global State initialized from LocalStorage
@@ -62,7 +63,27 @@ export const App: React.FC = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [defaultPaymentMadrasahId, setDefaultPaymentMadrasahId] = useState<string | undefined>(undefined);
   const [defaultPaymentMonth, setDefaultPaymentMonth] = useState<number | undefined>(undefined);
+  const [defaultPaymentYear, setDefaultPaymentYear] = useState<number | undefined>(undefined);
   const [defaultPaymentFeeItemId, setDefaultPaymentFeeItemId] = useState<string | undefined>(undefined);
+  const [defaultPaymentAmount, setDefaultPaymentAmount] = useState<number | undefined>(undefined);
+
+  // Toast Notification State
+  const [toast, setToast] = useState<{
+    id: string;
+    type: 'success' | 'info' | 'error';
+    title: string;
+    message: string;
+    actionLabel?: string;
+    onAction?: () => void;
+  } | null>(null);
+
+  // Auto-dismiss toast after 6 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const [verificationPayment, setVerificationPayment] = useState<PaymentRecord | null>(null);
   const [receiptPayment, setReceiptPayment] = useState<PaymentRecord | null>(null);
@@ -116,6 +137,29 @@ export const App: React.FC = () => {
     const updated = [newPayment, ...payments];
     setPayments(updated);
     StorageService.savePayments(updated);
+
+    const payAcademicYear = getPaymentAcademicYear(newPayment.periodMonth, newPayment.periodYear);
+    const isDifferentYear = payAcademicYear !== selectedYear;
+
+    if (newPayment.status === 'verified') {
+      setToast({
+        id: `toast-${Date.now()}`,
+        type: 'success',
+        title: 'Pembayaran Berhasil Dicatat & LUNAS!',
+        message: `${newPayment.madrasahName} • ${newPayment.categoryLabel} (${formatRupiah(newPayment.amount)}) untuk ${MONTH_NAMES_ID[newPayment.periodMonth - 1]} ${newPayment.periodYear}${isDifferentYear ? ` (TA ${payAcademicYear}/${payAcademicYear + 1})` : ''}.`,
+        actionLabel: 'Buka Kwitansi',
+        onAction: () => setReceiptPayment(newPayment)
+      });
+    } else {
+      setToast({
+        id: `toast-${Date.now()}`,
+        type: 'info',
+        title: 'Konfirmasi Pembayaran Terkirim!',
+        message: `${newPayment.madrasahName} • ${formatRupiah(newPayment.amount)} untuk ${MONTH_NAMES_ID[newPayment.periodMonth - 1]} ${newPayment.periodYear}. Menunggu verifikasi bendahara.`,
+        actionLabel: isDifferentYear ? `Lihat TA ${payAcademicYear}/${payAcademicYear + 1}` : undefined,
+        onAction: isDifferentYear ? () => setSelectedYear(payAcademicYear) : undefined
+      });
+    }
   };
 
   const handleApprovePayment = (paymentId: string) => {
@@ -245,14 +289,18 @@ export const App: React.FC = () => {
       setDefaultPaymentMadrasahId(undefined);
     }
     setDefaultPaymentMonth(undefined);
+    setDefaultPaymentYear(undefined);
     setDefaultPaymentFeeItemId(undefined);
+    setDefaultPaymentAmount(undefined);
     setIsPaymentModalOpen(true);
   };
 
-  const handleOpenPaymentForMonth = (madrasahId: string, month: number, feeItemId?: string) => {
+  const handleOpenPaymentForMonth = (madrasahId: string, month: number, feeItemId?: string, year?: number, defaultAmount?: number) => {
     setDefaultPaymentMadrasahId(madrasahId);
     setDefaultPaymentMonth(month);
+    setDefaultPaymentYear(year);
     setDefaultPaymentFeeItemId(feeItemId);
+    setDefaultPaymentAmount(defaultAmount);
     setIsPaymentModalOpen(true);
   };
 
@@ -535,14 +583,18 @@ export const App: React.FC = () => {
           onClose={() => {
             setIsPaymentModalOpen(false);
             setDefaultPaymentFeeItemId(undefined);
+            setDefaultPaymentYear(undefined);
+            setDefaultPaymentAmount(undefined);
           }}
           madrasahs={madrasahs}
           org={orgConfig}
           feeItems={feeItems}
           defaultFeeItemId={defaultPaymentFeeItemId}
           selectedYear={selectedYear}
+          defaultYear={defaultPaymentYear}
           defaultMadrasahId={defaultPaymentMadrasahId}
           defaultMonth={defaultPaymentMonth}
+          defaultAmount={defaultPaymentAmount}
           userRole={currentRole === 'anggota' ? 'public_madrasah' : 'admin'}
           onSubmitPayment={handleCreatePayment}
         />
@@ -579,6 +631,50 @@ export const App: React.FC = () => {
           onNavigateToOrgProfile={() => setActiveTab('organization')}
           onNavigateToBackup={() => setActiveTab('backup')}
         />
+      )}
+
+      {/* Floating Notification Toast */}
+      {toast && (
+        <div className="fixed top-5 right-5 z-50 max-w-md w-full animate-in fade-in slide-in-from-top-4 duration-200">
+          <div className={`p-4 rounded-2xl shadow-xl border flex items-start gap-3 ${
+            toast.type === 'success' 
+              ? 'bg-white border-emerald-300 text-slate-800' 
+              : toast.type === 'error'
+              ? 'bg-white border-rose-300 text-slate-800'
+              : 'bg-white border-sky-300 text-slate-800'
+          }`}>
+            <span className={`p-2 rounded-xl shrink-0 ${
+              toast.type === 'success' ? 'bg-emerald-100 text-emerald-700' :
+              toast.type === 'error' ? 'bg-rose-100 text-rose-700' :
+              'bg-sky-100 text-sky-700'
+            }`}>
+              {toast.type === 'success' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+            </span>
+            <div className="flex-1 min-w-0">
+              <h4 className="font-bold text-xs sm:text-sm text-slate-900">{toast.title}</h4>
+              <p className="text-xs text-slate-600 mt-0.5 leading-relaxed">{toast.message}</p>
+              {toast.actionLabel && toast.onAction && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.onAction?.();
+                    setToast(null);
+                  }}
+                  className="mt-2 text-xs font-bold text-emerald-700 hover:text-emerald-800 underline flex items-center gap-1 cursor-pointer"
+                >
+                  {toast.actionLabel} &rarr;
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="text-slate-400 hover:text-slate-600 p-1 rounded-lg cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       )}
 
     </div>

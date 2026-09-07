@@ -27,6 +27,7 @@ import {
   terbilang,
   getMadrasahMonthlyDues 
 } from '../utils/formatters';
+import { calculateMadrasahDuesAllocation } from '../utils/duesAllocation';
 import { exportBKUToCSV } from '../utils/exportUtils';
 
 interface FinancialReportsViewProps {
@@ -114,29 +115,21 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
   const totalCredit = bkuRows.reduce((sum, r) => sum + r.credit, 0);
   const netSurplus = totalDebit - totalCredit;
 
-  // Arrears Data per Madrasah in the selected academic year
+  // Arrears Data per Madrasah in the selected academic year using sequential allocation
   const arrearsList = madrasahs.map((m, idx) => {
-    const madrasahPayments = payments.filter(
-      p => p.madrasahId === m.id && p.status === 'verified' && isPaymentInAcademicYear(p, selectedYear)
-    );
-
-    const monthlyDuesRate = getMadrasahMonthlyDues(m, org);
-    const paidMonthsCount = madrasahPayments.length;
-    const totalPaid = madrasahPayments.reduce((sum, p) => sum + p.amount, 0);
-
-    const unpaidCount = Math.max(0, 12 - paidMonthsCount);
-    const unpaidAmount = unpaidCount * monthlyDuesRate;
+    const dues = calculateMadrasahDuesAllocation(m, payments, org, selectedYear);
 
     return {
       no: idx + 1,
       madrasah: m,
       studentCount: m.studentCount || 0,
-      monthlyDuesRate,
-      paidMonthsCount,
-      unpaidCount,
-      totalPaid,
-      unpaidAmount,
-      isLunas: unpaidCount === 0
+      monthlyDuesRate: dues.monthlyDues,
+      paidMonthsCount: dues.verifiedMonthsCount,
+      partialMonthsCount: dues.partialMonthsCount,
+      unpaidCount: dues.unpaidMonthsCount,
+      totalPaid: dues.totalVerifiedPaid,
+      unpaidAmount: dues.totalArrears,
+      isLunas: dues.isFullyPaid
     };
   });
 
@@ -405,7 +398,14 @@ export const FinancialReportsView: React.FC<FinancialReportsViewProps> = ({
                       {formatRupiah(item.monthlyDuesRate)}
                     </td>
                     <td className="py-2 px-3 text-center font-bold text-emerald-800 border-r border-slate-200">
-                      {item.paidMonthsCount} Bln
+                      <div className="flex items-center justify-center gap-1">
+                        <span>{item.paidMonthsCount} Bln</span>
+                        {item.partialMonthsCount > 0 && (
+                          <span className="text-[10px] font-extrabold text-amber-950 bg-amber-200 border border-amber-300 px-1 py-0.2 rounded">
+                            +{item.partialMonthsCount}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-2 px-3 text-center font-bold text-rose-700 border-r border-slate-200">
                       {item.unpaidCount} Bln

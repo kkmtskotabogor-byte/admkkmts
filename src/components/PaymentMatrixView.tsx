@@ -20,11 +20,11 @@ import {
   formatRupiah, 
   formatAcademicYear, 
   formatAcademicYearFull,
-  isPaymentInAcademicYear,
   generateDuesReminderWAMessage, 
   createWALink,
   getMadrasahMonthlyDues
 } from '../utils/formatters';
+import { calculateMadrasahDuesAllocation } from '../utils/duesAllocation';
 import { exportMatrixToCSV } from '../utils/exportUtils';
 
 interface PaymentMatrixViewProps {
@@ -32,7 +32,7 @@ interface PaymentMatrixViewProps {
   payments: PaymentRecord[];
   org: OrganizationConfig;
   selectedYear: number;
-  onOpenNewPaymentForMonth: (madrasahId: string, month: number) => void;
+  onOpenNewPaymentForMonth: (madrasahId: string, month: number, feeItemId?: string, year?: number, defaultAmount?: number) => void;
   onSelectPaymentForVerification: (payment: PaymentRecord) => void;
   onSelectPaymentForReceipt: (payment: PaymentRecord) => void;
 }
@@ -49,50 +49,13 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'unpaid_only' | 'fully_paid'>('all');
 
-  // Matrix calculation based on 12 Academic Months (Juli -> Juni)
+  // Matrix calculation based on sequential multi-month dues allocation engine
+  // Rule:
+  // - Setor 1 bulan: otomatis ceklis hijau
+  // - Setor melebihi 2 bulan: 2 bulan ceklis hijau, bulan ke-3 warna kuning (belum lunas)
+  // - dan seterusnya
   const matrixData = madrasahs.map((m) => {
-    const monthlyStatuses = ACADEMIC_MONTHS.map((am) => {
-      const calendarYear = am.getYear(selectedYear);
-      const verified = payments.find(
-        p => p.madrasahId === m.id && p.periodMonth === am.monthIndex && p.periodYear === calendarYear && p.status === 'verified'
-      );
-      const pending = payments.find(
-        p => p.madrasahId === m.id && p.periodMonth === am.monthIndex && p.periodYear === calendarYear && p.status === 'pending'
-      );
-
-      return {
-        monthNum: am.monthIndex,
-        shortName: am.shortName,
-        fullName: am.name,
-        calendarYear,
-        status: verified ? 'verified' : pending ? 'pending' : 'unpaid',
-        paymentRecord: verified || pending || null,
-      };
-    });
-
-    const verifiedMonths = monthlyStatuses.filter(s => s.status === 'verified').length;
-    const unpaidMonths = monthlyStatuses
-      .filter(s => s.status === 'unpaid')
-      .map(s => ({ month: s.monthNum, year: s.calendarYear }));
-
-    const totalPaid = payments
-      .filter(p => p.madrasahId === m.id && isPaymentInAcademicYear(p, selectedYear) && p.status === 'verified')
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    const monthlyDues = getMadrasahMonthlyDues(m, org);
-    const totalArrears = unpaidMonths.length * monthlyDues;
-
-    return {
-      madrasah: m,
-      monthlyDues,
-      monthlyStatuses,
-      verifiedMonths,
-      unpaidMonths,
-      totalPaid,
-      totalArrears,
-      isFullyPaid: verifiedMonths === 12,
-      hasArrears: unpaidMonths.length > 0,
-    };
+    return calculateMadrasahDuesAllocation(m, payments, org, selectedYear);
   });
 
   // Filtered rows
@@ -109,7 +72,7 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
   });
 
   const handleExportCSV = () => {
-    exportMatrixToCSV(madrasahs, payments, selectedYear);
+    exportMatrixToCSV(madrasahs, payments, selectedYear, org);
   };
 
   const handleSendReminderWA = (row: typeof matrixData[0]) => {
@@ -117,7 +80,7 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
       alert('Nomor WhatsApp madrasah belum diisi.');
       return;
     }
-    if (row.unpaidMonths.length === 0) {
+    if (row.totalArrears === 0) {
       alert('Madrasah ini sudah lunas untuk semua bulan!');
       return;
     }
@@ -164,16 +127,19 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
       <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         
         {/* Legend */}
-        <div className="flex flex-wrap items-center gap-3 text-xs">
+        <div className="flex flex-wrap items-center gap-2.5 text-xs">
           <span className="font-semibold text-slate-600">Keterangan:</span>
-          <span className="inline-flex items-center gap-1 text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Lunas (Verifikasi)
+          <span className="inline-flex items-center gap-1 text-emerald-800 font-bold bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" /> Lunas (Ceklis Hijau)
           </span>
-          <span className="inline-flex items-center gap-1 text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-            <Clock className="w-3.5 h-3.5" /> Menunggu Verifikasi
+          <span className="inline-flex items-center gap-1 text-amber-950 font-bold bg-amber-200 px-2 py-0.5 rounded border border-amber-400 shadow-2xs">
+            <AlertCircle className="w-3.5 h-3.5 text-amber-800" /> Belum Lunas (Warna Kuning)
+          </span>
+          <span className="inline-flex items-center gap-1 text-amber-800 font-semibold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+            <Clock className="w-3.5 h-3.5 text-amber-600" /> Menunggu Verifikasi
           </span>
           <span className="inline-flex items-center gap-1 text-slate-500 font-medium bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-            • Belum Bayar (Klik utk Bayar)
+            + Belum Bayar
           </span>
         </div>
 
@@ -277,8 +243,9 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
                   </td>
 
                   {/* 12 Month Cells */}
-                  {row.monthlyStatuses.map((cell) => {
+                  {row.cells.map((cell) => {
                     const isVerified = cell.status === 'verified';
+                    const isPartial = cell.status === 'partial';
                     const isPending = cell.status === 'pending';
 
                     return (
@@ -286,29 +253,50 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
                         key={cell.monthNum}
                         className="py-1 px-1 text-center border-r border-slate-100"
                       >
+                        {/* 1. Lunas Penuh (Ceklis Hijau) */}
                         {isVerified && (
                           <button
+                            type="button"
                             onClick={() => cell.paymentRecord && onSelectPaymentForReceipt(cell.paymentRecord)}
-                            title={`Lunas (${cell.fullName} ${cell.calendarYear} - ${formatRupiah(cell.paymentRecord?.amount || row.monthlyDues)}). Klik utk kwitansi.`}
+                            title={`Lunas (${cell.fullName} ${cell.calendarYear} - ${formatRupiah(cell.paidAmount || row.monthlyDues)}). Klik untuk melihat kwitansi.`}
                             className="w-8 h-8 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold flex items-center justify-center mx-auto transition-transform hover:scale-110 shadow-2xs cursor-pointer"
                           >
                             <CheckCircle2 className="w-4 h-4" />
                           </button>
                         )}
 
+                        {/* 2. Belum Lunas / Sebagian (Warna Kuning) */}
+                        {isPartial && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenNewPaymentForMonth(row.madrasah.id, cell.monthNum, undefined, cell.calendarYear, cell.remainingDeficit)}
+                            title={`Belum Lunas (${cell.fullName} ${cell.calendarYear}): Terbayar ${formatRupiah(cell.paidAmount)} / Tagihan ${formatRupiah(row.monthlyDues)} (Kurang ${formatRupiah(cell.remainingDeficit)}). Klik untuk melunasi sisa tagihan.`}
+                            className="w-8 h-8 rounded-lg bg-amber-200 hover:bg-amber-300 text-amber-950 border border-amber-400 font-bold flex flex-col items-center justify-center mx-auto transition-transform hover:scale-110 shadow-xs cursor-pointer group"
+                          >
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-800" />
+                            <span className="text-[7.5px] font-black leading-none text-amber-900 mt-0.5">
+                              {Math.round((cell.paidAmount / row.monthlyDues) * 100)}%
+                            </span>
+                          </button>
+                        )}
+
+                        {/* 3. Menunggu Verifikasi (Oranye) */}
                         {isPending && (
                           <button
+                            type="button"
                             onClick={() => cell.paymentRecord && onSelectPaymentForVerification(cell.paymentRecord)}
-                            title={`Menunggu Verifikasi (${cell.fullName} ${cell.calendarYear}). Klik utk periksa struk.`}
+                            title={`Menunggu Verifikasi (${cell.fullName} ${cell.calendarYear} - ${formatRupiah(cell.pendingAmount)}). Klik utk periksa struk.`}
                             className="w-8 h-8 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold flex items-center justify-center mx-auto animate-pulse transition-transform hover:scale-110 cursor-pointer"
                           >
                             <Clock className="w-4 h-4" />
                           </button>
                         )}
 
-                        {!isVerified && !isPending && (
+                        {/* 4. Belum Bayar (+) */}
+                        {!isVerified && !isPartial && !isPending && (
                           <button
-                            onClick={() => onOpenNewPaymentForMonth(row.madrasah.id, cell.monthNum)}
+                            type="button"
+                            onClick={() => onOpenNewPaymentForMonth(row.madrasah.id, cell.monthNum, undefined, cell.calendarYear, row.monthlyDues)}
                             title={`Belum Bayar (${cell.fullName} ${cell.calendarYear} - Tagihan: ${formatRupiah(row.monthlyDues)}). Klik untuk catat iuran.`}
                             className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-400 font-medium flex items-center justify-center mx-auto transition-colors border border-transparent hover:border-emerald-300 cursor-pointer"
                           >
@@ -319,34 +307,51 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
                     );
                   })}
 
-                  {/* Verified Count */}
-                  <td className="py-2.5 px-3 text-center font-bold border-r border-slate-100">
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] ${
-                      row.verifiedMonths === 12
-                        ? 'bg-emerald-100 text-emerald-800 font-extrabold'
-                        : 'bg-slate-100 text-slate-700'
-                    }`}>
-                      {row.verifiedMonths}/12
-                    </span>
+                  {/* Lunas Status Count */}
+                  <td className="py-2.5 px-2 text-center border-r border-slate-100">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        row.verifiedMonthsCount === 12
+                          ? 'bg-emerald-100 text-emerald-800 font-extrabold'
+                          : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {row.verifiedMonthsCount}/12
+                      </span>
+                      {row.partialMonthsCount > 0 && (
+                        <span className="text-[8px] font-black text-amber-950 bg-amber-200 border border-amber-300 px-1.5 py-0.5 rounded-sm leading-none whitespace-nowrap">
+                          +{row.partialMonthsCount} bln kuning
+                        </span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Total Paid */}
                   <td className="py-2.5 px-3 text-right font-bold text-emerald-800 border-r border-slate-100 whitespace-nowrap">
-                    {formatRupiah(row.totalPaid)}
+                    {formatRupiah(row.totalVerifiedPaid)}
+                    {row.totalPendingPaid > 0 && (
+                      <div className="text-[9px] text-amber-600 font-semibold">
+                        +{formatRupiah(row.totalPendingPaid)} pnd
+                      </div>
+                    )}
                   </td>
 
                   {/* Total Arrears */}
                   <td className="py-2.5 px-3 text-right font-bold text-rose-700 border-r border-slate-100 whitespace-nowrap">
-                    {row.totalArrears > 0 ? formatRupiah(row.totalArrears) : <span className="text-emerald-700 font-bold">Lunas</span>}
+                    {row.totalArrears > 0 ? (
+                      formatRupiah(row.totalArrears)
+                    ) : (
+                      <span className="text-emerald-700 font-bold">Lunas 100%</span>
+                    )}
                   </td>
 
                   {/* WhatsApp Reminder Button */}
                   <td className="py-2.5 px-3 text-center">
-                    {row.unpaidMonths.length > 0 ? (
+                    {row.hasArrears ? (
                       <button
+                        type="button"
                         onClick={() => handleSendReminderWA(row)}
                         className="p-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 rounded-lg transition-all border border-emerald-200 inline-flex items-center gap-1 text-[11px] font-bold cursor-pointer"
-                        title={`Kirim Pengingat WA ke ${row.madrasah.treasurerName || 'Bendahara'} (${row.unpaidMonths.length} bulan belum lunas)`}
+                        title={`Kirim Pengingat WA ke ${row.madrasah.treasurerName || 'Bendahara'} (Ada ${row.unpaidOrPartialMonths.length} bulan belum lunas)`}
                       >
                         <Send className="w-3 h-3" />
                         <span>WA</span>
@@ -364,9 +369,11 @@ export const PaymentMatrixView: React.FC<PaymentMatrixViewProps> = ({
 
         {/* Matrix Footer Note */}
         <div className="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 gap-2">
-          <span>* Format Tahun Ajaran: Juli {selectedYear} s.d. Juni {selectedYear + 1}. Klik tombol + untuk mencatat setoran iuran.</span>
+          <span>
+            * <strong>Aturan Otomatis Matriks:</strong> Setor 1 bulan otomatis ceklis hijau. Setor melebihi 2 bulan: 2 bulan ceklis hijau dan bulan ke-3 warna kuning (belum lunas), dan seterusnya.
+          </span>
           <div className="font-semibold text-slate-800">
-            Perhitungan Iuran Anggota: <strong>Rp {(org.duesPerStudent || 3000).toLocaleString('id-ID')} / siswa / bulan</strong> (Setiap MTs memiliki besaran sesuai jumlah siswa)
+            Perhitungan Iuran Anggota: <strong>Rp {(org.duesPerStudent || 3000).toLocaleString('id-ID')} / siswa / bulan</strong> ({formatRupiah(org.defaultMonthlyDues || 150000)}/bln dasar)
           </div>
         </div>
 
