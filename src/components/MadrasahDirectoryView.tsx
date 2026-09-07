@@ -49,6 +49,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'Negeri' | 'Swasta'>('all');
+  const [selectedSubdistrict, setSelectedSubdistrict] = useState<string>('all');
   const [showModal, setShowModal] = useState(false);
   const [editingMadrasah, setEditingMadrasah] = useState<Madrasah | null>(null);
   const [madrasahToDelete, setMadrasahToDelete] = useState<Madrasah | null>(null);
@@ -65,6 +66,9 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
   const [subdistrict, setSubdistrict] = useState('');
+
+  // Subdistricts in data
+  const subdistricts = Array.from(new Set(madrasahs.map(m => m.subdistrict).filter(Boolean))).sort();
 
   const openAddModal = () => {
     setEditingMadrasah(null);
@@ -143,14 +147,17 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
   // Filtered List
   const filteredMadrasahs = madrasahs.filter((m) => {
     if (filterType !== 'all' && m.status !== filterType) return false;
+    if (selectedSubdistrict !== 'all' && m.subdistrict !== selectedSubdistrict) return false;
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       if (
         !m.name.toLowerCase().includes(q) &&
         !m.nsm.includes(q) &&
+        !(m.npsn && m.npsn.includes(q)) &&
         !m.headmasterName.toLowerCase().includes(q) &&
         !m.treasurerName.toLowerCase().includes(q) &&
-        !m.subdistrict.toLowerCase().includes(q)
+        !m.subdistrict.toLowerCase().includes(q) &&
+        !m.address.toLowerCase().includes(q)
       ) {
         return false;
       }
@@ -165,10 +172,10 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-            Direktori Madrasah Tsanawiyah Anggota KKMTS
+            Direktori Madrasah Tsanawiyah Anggota KKMTS ({madrasahs.length} MTs)
           </h2>
           <p className="text-xs sm:text-sm text-slate-500">
-            Data kontak Kepala Madrasah, Bendahara, status iuran, dan nomor WhatsApp
+            Data kontak Kepala Madrasah, Bendahara, status iuran, alamat per kecamatan di Kota Bogor
           </p>
         </div>
 
@@ -196,50 +203,87 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
-        <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari nama MTs, NSM, nama kepala/bendahara..."
-            className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 focus:outline-hidden"
-          />
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-xs flex flex-col gap-3 text-xs">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Cari nama MTs, NPSN, NSM, kecamatan, alamat..."
+              className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-800 focus:outline-hidden"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                filterType === 'all'
+                  ? 'bg-slate-900 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              Semua ({madrasahs.length})
+            </button>
+            <button
+              onClick={() => setFilterType('Swasta')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                filterType === 'Swasta'
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              MTs Swasta ({madrasahs.filter(m => m.status === 'Swasta').length})
+            </button>
+            <button
+              onClick={() => setFilterType('Negeri')}
+              className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
+                filterType === 'Negeri'
+                  ? 'bg-emerald-700 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              MTs Negeri ({madrasahs.filter(m => m.status === 'Negeri').length})
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto">
-          <button
-            onClick={() => setFilterType('all')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-              filterType === 'all'
-                ? 'bg-slate-900 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            Semua ({madrasahs.length})
-          </button>
-          <button
-            onClick={() => setFilterType('Negeri')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-              filterType === 'Negeri'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            MTs Negeri ({madrasahs.filter(m => m.status === 'Negeri').length})
-          </button>
-          <button
-            onClick={() => setFilterType('Swasta')}
-            className={`px-3 py-1.5 rounded-xl font-bold transition-all ${
-              filterType === 'Swasta'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            MTs Swasta ({madrasahs.filter(m => m.status === 'Swasta').length})
-          </button>
-        </div>
+        {/* Subdistrict Filter Chips */}
+        {subdistricts.length > 0 && (
+          <div className="pt-2 border-t border-slate-100 flex items-center gap-1.5 flex-wrap">
+            <span className="text-slate-400 text-[11px] font-semibold mr-1">Kecamatan:</span>
+            <button
+              type="button"
+              onClick={() => setSelectedSubdistrict('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                selectedSubdistrict === 'all'
+                  ? 'bg-emerald-100 text-emerald-900 font-bold border border-emerald-300'
+                  : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+              }`}
+            >
+              Semua Wilayah
+            </button>
+            {subdistricts.map(sub => {
+              const countInSub = madrasahs.filter(m => m.subdistrict === sub).length;
+              return (
+                <button
+                  key={sub}
+                  type="button"
+                  onClick={() => setSelectedSubdistrict(sub)}
+                  className={`px-2.5 py-1 rounded-lg text-xs transition-all ${
+                    selectedSubdistrict === sub
+                      ? 'bg-emerald-600 text-white font-bold shadow-xs'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  {sub} ({countInSub})
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Grid of Madrasah Cards */}
@@ -296,7 +340,7 @@ export const MadrasahDirectoryView: React.FC<MadrasahDirectoryViewProps> = ({
                   {m.name}
                 </h3>
                 <div className="flex items-center justify-between flex-wrap gap-1 mt-0.5 text-xs text-slate-500 font-mono">
-                  <span>NSM: {m.nsm}</span>
+                  <span>NPSN: <strong className="text-slate-700">{m.npsn || '-'}</strong> | NSM: {m.nsm}</span>
                   <span className="inline-flex items-center gap-1 bg-indigo-50 text-indigo-800 border border-indigo-200 px-1.5 py-0.5 rounded-md font-bold text-[10px]">
                     <KeyRound className="w-2.5 h-2.5" />
                     Kode: {getMadrasahAccessCode(m)}

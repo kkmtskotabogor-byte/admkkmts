@@ -581,7 +581,7 @@ export const BackupRestoreView: React.FC<BackupRestoreViewProps> = ({
                 <span>Reset ke Data Awal Demo</span>
               </div>
               <p className="text-xs text-slate-600 mt-1.5">
-                Mengembalikan database ke kondisi awal contoh bawaan sistem KKMTS Kota Bogor (15 Madrasah, riwayat simulasi iuran, dan pos kegiatan).
+                Mengembalikan database ke kondisi awal resmi KKMTS Kota Bogor (51 Madrasah Tsanawiyah se-Kota Bogor, riwayat simulasi iuran, dan pos kegiatan).
               </p>
             </div>
             <button

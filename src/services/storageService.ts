@@ -8,14 +8,14 @@ import {
 } from '../data/initialData';
 
 const STORAGE_KEYS = {
-  AUTH_SESSION: 'kkmts_app_auth_session_v2',
-  MADRASAH: 'kkmts_app_madrasah_v2',
-  PAYMENTS: 'kkmts_app_payments_v2',
-  EXPENSES: 'kkmts_app_expenses_v2',
-  CONFIG: 'kkmts_app_config_v2',
-  FEE_ITEMS: 'kkmts_app_fee_items_v2',
-  ACTIVE_ROLE: 'kkmts_app_role_v2',
-  SELECTED_MADRASAH_ID: 'kkmts_app_selected_madrasah_id_v2',
+  AUTH_SESSION: 'kkmts_app_auth_session_v3',
+  MADRASAH: 'kkmts_app_madrasah_v3',
+  PAYMENTS: 'kkmts_app_payments_v3',
+  EXPENSES: 'kkmts_app_expenses_v3',
+  CONFIG: 'kkmts_app_config_v3',
+  FEE_ITEMS: 'kkmts_app_fee_items_v3',
+  ACTIVE_ROLE: 'kkmts_app_role_v3',
+  SELECTED_MADRASAH_ID: 'kkmts_app_selected_madrasah_id_v3',
 };
 
 export const StorageService = {
@@ -40,10 +40,18 @@ export const StorageService = {
   getMadrasahs(): Madrasah[] {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.MADRASAH);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed = JSON.parse(data);
+        if (Array.isArray(parsed) && parsed.length >= 50) {
+          return parsed;
+        }
+      }
     } catch (e) {
       console.error('Failed to load madrasah from storage', e);
     }
+    try {
+      localStorage.setItem(STORAGE_KEYS.MADRASAH, JSON.stringify(INITIAL_MADRASAH_LIST));
+    } catch (e) {}
     return INITIAL_MADRASAH_LIST;
   },
 
