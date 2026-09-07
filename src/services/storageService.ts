@@ -183,9 +183,30 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.FEE_ITEMS);
   },
 
+  clearTransactionsOnly(): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+    } catch (e) {
+      console.error('Failed to clear transactions', e);
+    }
+  },
+
+  clearAllDataTotal(): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.PAYMENTS, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.MADRASAH, JSON.stringify([]));
+      localStorage.setItem(STORAGE_KEYS.FEE_ITEMS, JSON.stringify([]));
+    } catch (e) {
+      console.error('Failed to clear all data', e);
+    }
+  },
+
   exportDatabaseJSON(): string {
     const backup = {
-      version: '1.1',
+      appName: 'KKMTS Keuangan App',
+      version: '1.2',
       exportedAt: new Date().toISOString(),
       madrasahs: this.getMadrasahs(),
       payments: this.getPayments(),
@@ -196,14 +217,63 @@ export const StorageService = {
     return JSON.stringify(backup, null, 2);
   },
 
+  downloadBackupFile(): string {
+    const jsonStr = this.exportDatabaseJSON();
+    const blob = new Blob([jsonStr], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10);
+    const timeStr = `${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    const filename = `backup_kkmts_${dateStr}_${timeStr}.json`;
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    return filename;
+  },
+
+  validateBackupData(parsed: any): { 
+    isValid: boolean; 
+    error?: string; 
+    stats?: { 
+      madrasahs: number; 
+      payments: number; 
+      expenses: number; 
+      feeItems: number; 
+      exportedAt?: string;
+    } 
+  } {
+    if (!parsed || typeof parsed !== 'object') {
+      return { isValid: false, error: 'File bukan format JSON yang valid.' };
+    }
+    if (!Array.isArray(parsed.madrasahs) && !Array.isArray(parsed.payments) && !Array.isArray(parsed.expenses)) {
+      return { isValid: false, error: 'File tidak memuat data aplikasi KKMTS yang valid (tidak ditemukan tabel data).' };
+    }
+    return {
+      isValid: true,
+      stats: {
+        madrasahs: Array.isArray(parsed.madrasahs) ? parsed.madrasahs.length : 0,
+        payments: Array.isArray(parsed.payments) ? parsed.payments.length : 0,
+        expenses: Array.isArray(parsed.expenses) ? parsed.expenses.length : 0,
+        feeItems: Array.isArray(parsed.feeItems) ? parsed.feeItems.length : 0,
+        exportedAt: parsed.exportedAt || undefined,
+      }
+    };
+  },
+
   importDatabaseJSON(jsonStr: string): boolean {
     try {
       const parsed = JSON.parse(jsonStr);
-      if (parsed.madrasahs && parsed.payments && parsed.expenses && parsed.config) {
+      if (parsed.madrasahs && parsed.payments && parsed.expenses) {
         this.saveMadrasahs(parsed.madrasahs);
         this.savePayments(parsed.payments);
         this.saveExpenses(parsed.expenses);
-        this.saveConfig(parsed.config);
+        if (parsed.config) {
+          this.saveConfig(parsed.config);
+        }
         if (parsed.feeItems) {
           this.saveFeeItems(parsed.feeItems);
         }

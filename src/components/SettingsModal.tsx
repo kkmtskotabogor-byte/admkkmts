@@ -13,11 +13,14 @@ import {
   Users,
   Image as ImageIcon,
   Upload,
-  ExternalLink
+  ExternalLink,
+  Database,
+  Download
 } from 'lucide-react';
 import { OrganizationConfig, BankAccount } from '../types';
 import { ConfirmDeleteModal } from './ConfirmDeleteModal';
 import { resizeImageToDataUrl } from '../utils/logoPresets';
+import { StorageService } from '../services/storageService';
 
 interface SettingsModalProps {
   config: OrganizationConfig;
@@ -26,6 +29,7 @@ interface SettingsModalProps {
   onSave: (updatedConfig: OrganizationConfig) => void;
   onResetData: () => void;
   onNavigateToOrgProfile?: () => void;
+  onNavigateToBackup?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -35,6 +39,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onSave,
   onResetData,
   onNavigateToOrgProfile,
+  onNavigateToBackup,
 }) => {
   const handleClose = () => {
     if (typeof onClose === 'function') {
@@ -467,7 +472,49 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           </div>
 
-          {/* Reset Demo Data Button */}
+          {/* Database & Backup Management Section */}
+          <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+                  <Database className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-slate-800">Cadangan & Pemulihan Data (Backup & Restore)</h4>
+                  <p className="text-[11px] text-slate-500">Unduh atau pulihkan seluruh database iuran & kas KKMTS</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  StorageService.downloadBackupFile();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-2xs transition-colors cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Unduh File Backup (.json)</span>
+              </button>
+
+              {onNavigateToBackup && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleClose();
+                    onNavigateToBackup();
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded-xl border border-slate-200 transition-colors cursor-pointer"
+                >
+                  <Database className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>Buka Menu Backup & Restore Lengkap</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Reset Demo Data Button & Form Actions */}
           <div className="pt-4 border-t border-slate-200 flex items-center justify-between">
             <button
               type="button"

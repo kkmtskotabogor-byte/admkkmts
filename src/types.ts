@@ -174,5 +174,6 @@ export type ActiveTab =
   | 'madrasah'
   | 'access_codes'
   | 'organization'
+  | 'backup'
   | 'portal';
 

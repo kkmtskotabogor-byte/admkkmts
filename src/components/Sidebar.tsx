@@ -16,7 +16,8 @@ import {
   KeyRound,
   CheckCircle2,
   Lock,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Database
 } from 'lucide-react';
 import { ActiveTab, OrganizationConfig, AuthSession, AppRole } from '../types';
 
@@ -122,6 +123,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Identitas & Logo',
       icon: Building2,
       badge: org.logoUrl ? null : 'Atur',
+      roles: ['ketua'] as AppRole[],
+    },
+    {
+      id: 'backup' as ActiveTab,
+      label: 'Backup & Restore Data',
+      icon: Database,
+      badge: 'Data',
       roles: ['ketua'] as AppRole[],
     },
     {

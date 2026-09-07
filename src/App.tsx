@@ -14,6 +14,7 @@ import { FeeManagementView } from './components/FeeManagementView';
 import { MemberPortalView } from './components/MemberPortalView';
 import { AccessCodesView } from './components/AccessCodesView';
 import { OrganizationProfileView } from './components/OrganizationProfileView';
+import { BackupRestoreView } from './components/BackupRestoreView';
 import { MobileBottomNav } from './components/MobileBottomNav';
 import { QuickPaymentModal } from './components/QuickPaymentModal';
 import { VerificationModal } from './components/VerificationModal';
@@ -203,6 +204,37 @@ export const App: React.FC = () => {
     setExpenses(StorageService.getExpenses());
     setFeeItems(StorageService.getFeeItems());
     setOrgConfig(StorageService.getConfig());
+  };
+
+  // Handlers for Backup, Restore & Clear Data
+  const handleRestoreSuccess = (newData: {
+    madrasahs: Madrasah[];
+    payments: PaymentRecord[];
+    expenses: ExpenseRecord[];
+    feeItems: FeeItem[];
+    config?: OrganizationConfig;
+  }) => {
+    setMadrasahs(newData.madrasahs);
+    setPayments(newData.payments);
+    setExpenses(newData.expenses);
+    setFeeItems(newData.feeItems);
+    if (newData.config) {
+      setOrgConfig(newData.config);
+    }
+  };
+
+  const handleClearTransactions = () => {
+    StorageService.clearTransactionsOnly();
+    setPayments([]);
+    setExpenses([]);
+  };
+
+  const handleClearAllData = () => {
+    StorageService.clearAllDataTotal();
+    setPayments([]);
+    setExpenses([]);
+    setMadrasahs([]);
+    setFeeItems([]);
   };
 
   // Quick Open Modal Helpers
@@ -405,6 +437,21 @@ export const App: React.FC = () => {
             />
           )}
 
+          {/* ROLE 1: KETUA - Backup, Restore & Hapus Data */}
+          {activeTab === 'backup' && currentRole === 'ketua' && (
+            <BackupRestoreView
+              madrasahs={madrasahs}
+              payments={payments}
+              expenses={expenses}
+              feeItems={feeItems}
+              org={orgConfig}
+              onRestoreSuccess={handleRestoreSuccess}
+              onClearTransactions={handleClearTransactions}
+              onClearAllData={handleClearAllData}
+              onResetToDemo={handleResetData}
+            />
+          )}
+
           {/* ROLE 3 (ANGGOTA) & ROLE 1 (KETUA): Portal Madrasah (Kewajiban & Sudah Dibayar) */}
           {(activeTab === 'portal' || currentRole === 'anggota') && (
             <MemberPortalView
@@ -530,6 +577,7 @@ export const App: React.FC = () => {
           onSave={(newCfg) => setOrgConfig(newCfg)}
           onResetData={handleResetData}
           onNavigateToOrgProfile={() => setActiveTab('organization')}
+          onNavigateToBackup={() => setActiveTab('backup')}
         />
       )}
 

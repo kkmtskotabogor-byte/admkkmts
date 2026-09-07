@@ -3,13 +3,14 @@ import {
   Building2, 
   Calendar, 
   Settings, 
-  Plus,
-  Menu,
-  KeyRound,
-  Crown,
-  Wallet,
-  School,
-  LogOut
+  Plus, 
+  Menu, 
+  KeyRound, 
+  Crown, 
+  Wallet, 
+  School, 
+  LogOut,
+  Database
 } from 'lucide-react';
 import { OrganizationConfig, ActiveTab, AuthSession, AppRole } from '../types';
 import { ACADEMIC_YEAR_OPTIONS, formatAcademicYear, formatAcademicYearFull } from '../utils/formatters';
@@ -107,6 +108,11 @@ export const Header: React.FC<HeaderProps> = ({
         return {
           title: 'Identitas & Logo KKMTS',
           subtitle: 'Kelola logo resmi, nama lembaga, susunan pimpinan pengurus, kontak, dan rekening bank penerimaan.'
+        };
+      case 'backup':
+        return {
+          title: 'Cadangan & Pemulihan Data (Backup & Restore)',
+          subtitle: 'Amankan database pembukuan dengan mengunduh file cadangan (.json), pulihkan data, atau bersihkan riwayat transaksi.'
         };
       case 'portal':
         return {
@@ -225,6 +231,22 @@ export const Header: React.FC<HeaderProps> = ({
               <Plus className="w-4 h-4" />
               <span>{currentRole === 'anggota' ? 'Upload Bukti Transfer' : 'Catat Iuran'}</span>
             </button>
+
+            {/* Backup & Restore Button (Ketua only) */}
+            {currentRole === 'ketua' && setActiveTab && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('backup')}
+                title="Cadangan & Pemulihan Data (Backup, Restore & Hapus Data)"
+                className={`p-2 rounded-xl transition-colors border cursor-pointer ${
+                  activeTab === 'backup'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-slate-100 border-slate-200'
+                }`}
+              >
+                <Database className="w-4 h-4 sm:w-5 sm:h-5" />
+              </button>
+            )}
 
             {/* Settings Button (Ketua only) */}
             {currentRole === 'ketua' && (
